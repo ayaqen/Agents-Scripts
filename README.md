@@ -70,6 +70,9 @@ tests/               Self-tests for the tooling (run in CI)
 | [prompt-triage](skills/prompt-triage/SKILL.md) | Debugging LLM prompt / agent misbehavior |
 | [eval-design](skills/eval-design/SKILL.md) | Designing evals for an LLM-powered feature |
 | [model-tiering](skills/model-tiering/SKILL.md) | Splitting work between an orchestrating frontier model and cheaper executor subagents |
+| [pr-review](skills/pr-review/SKILL.md) | Reviewing someone else's pull request before merge |
+| [security-review](skills/security-review/SKILL.md) | Security pass over a diff, feature, or dependency |
+| [tool-design](skills/tool-design/SKILL.md) | Designing tools and MCP servers agents use correctly |
 | [skill-author](skills/skill-author/SKILL.md) | Creating or updating skills in this repo |
 
 ## Design principles

@@ -1,0 +1,32 @@
+---
+name: tool-design
+description: "Design tools and MCP servers agents call correctly on the first try: schemas, descriptions, outputs, errors."
+---
+
+# tool-design
+
+Tools are the API between an agent and the world, and the model reads nothing but the name, description, schema, and returned text — never the implementation behind them. A mediocre model wired to well-designed tools outperforms a strong model wired to confusing ones.
+
+## When to use
+
+- Building or revising an MCP server or agent tool definitions.
+- An agent repeatedly misuses, ignores, or retry-loops on a tool — that's a design signal, not a model failure.
+- Wrapping an existing CLI or REST API for agent use.
+
+## Workflow
+
+1. Design around agent tasks, not existing endpoints: one tool per intention, and collapse multi-call sequences the agent always performs in order into a single tool.
+2. Treat the description as the contract: when to use it, when NOT to use it (name the alternative), side effects, and cost. Front-load the words a task description would contain — routing matches on them.
+3. Make schemas hard to misuse: enums over free-form strings, minimal required fields, sensible defaults, unambiguous names kept consistent across the whole toolset (`file_path` everywhere or nowhere).
+4. Treat outputs as context the agent must carry: return the minimum that answers the intention, and paginate or truncate large results with explicit markers — silent truncation produces confident wrong answers downstream.
+5. Write errors that teach: what was wrong AND what to do next — valid ranges, did-you-mean, required preconditions. The agent's retry is built from your error text.
+6. Gate danger: destructive operations get dry-run modes or explicit confirmation parameters, and read-only vs. mutating is stated in the description.
+7. Eval the toolset like a prompt (pair with `eval-design` and `prompt-triage`): run the target model on realistic tasks and count wrong-tool choices, malformed calls, and retry loops. Iterate on descriptions first — they're the cheapest lever.
+
+## Pitfalls
+
+- Mirroring a REST API 1:1 — it was designed for programmers with docs, not a model with one screen of schema.
+- Kitchen-sink tools with a dozen optional parameters: the model guesses, badly.
+- Returning raw payloads that flood the context window.
+- Errors that just say "invalid input."
+- Validating the toolset only with the strongest model, then shipping to a cheaper one that needed the guardrails you skipped.

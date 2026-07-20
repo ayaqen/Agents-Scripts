@@ -1,0 +1,32 @@
+---
+name: pr-review
+description: "Review someone else's pull request: correctness, scope, tests, and an actionable verdict."
+---
+
+# pr-review
+
+Reviewing code you didn't write — including AI-generated PRs — with one job: protect the main branch while keeping the contribution, and the contributor, moving. Covers someone else's diff; for your own, see `self-review`.
+
+## When to use
+
+- Asked to review a pull request.
+- Merging an external contribution.
+- Checking agent-generated work before it lands.
+
+## Workflow
+
+1. Context before code: read the PR description, the linked issue, and CI status first, so you know what the change claims to do before judging whether it does it.
+2. Read the diff hunk by hunk for correctness — boundaries, error paths, concurrency. Then read the negative space: missing tests, un-updated callers, docs/changelog for user-visible changes.
+3. When stakes warrant, verify claims instead of trusting them: check out the branch, run the tests, exercise the feature yourself.
+4. Treat generated code with extra suspicion — confident-but-wrong logic, invented APIs, tests that assert nothing. Confirm new tests actually fail if the change is reverted.
+5. Classify every finding explicitly as **blocking** (correctness, security, data loss) or **non-blocking** (style, preference). A review without this split stalls the PR on nits.
+6. Deliver an explicit verdict with rationale. Keep comments line-anchored, respectful, and paired with a concrete fix. For small fixes, prefer fixing and merging yourself over another review round-trip.
+7. On merge, preserve contributor credit with a `Co-authored-by` trailer.
+
+## Pitfalls
+
+- Approving because CI is green — CI proves what it tests, not whether the design is right.
+- Drowning a real design flaw under a pile of style nits.
+- "Needs work" without saying what work — every blocking comment names the fix.
+- Reviewing the author instead of the code.
+- Skimming a huge PR end to end. A review you can't actually perform protects nothing — request a split instead.
