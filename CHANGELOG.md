@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Add model-tiering skill and AGENTS.md delegation rules: frontier-model orchestration with cheaper executor subagents.
+- Add pr-review, security-review, and tool-design skills.
 
 ## 0.1.0 - 2026-07-20
 
