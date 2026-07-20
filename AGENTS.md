@@ -16,6 +16,12 @@ Machine- or person-specific rules belong in an untracked `AGENTS.local.md` next 
 - After any fix, re-run the command that originally failed.
 - Claims about external state (a release published, CI green, a package on a registry) require a fresh read of that state, not memory.
 
+## Delegation
+
+- Orchestrate at the top tier, execute below it: keep planning, architecture, root-cause debugging, and final review on the strongest available model; delegate well-specified execution (mechanical edits, sweeps, scaffolded drafts) to cheaper subagent models (see `skills/model-tiering`).
+- A delegated task needs a complete spec: inputs, expected output, done-criteria, and the verification command.
+- The orchestrator owns correctness: verify subagent work directly before committing. A worker's "done" is a claim, not proof.
+
 ## Git
 
 - Never push, force-push, or change branches without an explicit user request or a workflow that clearly authorizes it.
