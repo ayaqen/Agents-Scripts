@@ -1,0 +1,33 @@
+---
+name: eval-design
+description: "Design evals for an LLM feature: graded cases, honest metrics, and a regression set that gates changes."
+---
+
+# eval-design
+
+You can't improve what you can't measure, and with LLM features you can't even *keep* what you can't measure. An eval is to a prompt what a test suite is to code.
+
+## When to use
+
+- Shipping any LLM-powered feature beyond a throwaway.
+- Before a model upgrade or prompt rewrite ("will this make things worse?").
+- After every incident triaged with `prompt-triage` — failures become eval cases.
+
+## Workflow
+
+1. **Define the behavior contract** in writing: what does a *good* output do, what is *unacceptable*, and what's merely stylistic? If you can't articulate it, no grader can check it.
+2. **Collect real cases first.** 20 real inputs beat 200 synthetic ones. Sources: production logs, bug reports, the failures that motivated the eval. Then add synthetic edge cases deliberately: empty input, adversarial input, boundary lengths, off-distribution topics.
+3. **Choose the cheapest grader that's honest:**
+   - Exact/structural checks (schema validity, required fields, forbidden strings) — use everywhere they apply.
+   - Code-based semantic checks (does the extracted date match the source?).
+   - Model-graded rubrics only for genuinely subjective qualities — and spot-check the grader against your own judgments before trusting it.
+4. **Run with statistics in mind:** multiple samples per case for stochastic settings; report pass rate per case, not just the aggregate; keep the eval runnable with one command so it actually gets run.
+5. **Gate changes on it.** Prompt/model/pipeline changes run the eval; regressions need an explicit decision, not silence. Wire it into CI if runtime and cost allow, or a documented manual gate if not.
+6. **Grow it like a test suite:** every escaped defect adds a case; periodically prune cases that no longer reflect real usage.
+
+## Pitfalls
+
+- Testing only happy paths — evals earn their keep on the inputs you didn't think of, so actively hunt for those.
+- A model-graded eval whose grader is more lenient than your users. Calibrate against human judgment first.
+- Aggregate-only reporting: 95% overall can hide 0% on the case class you just broke.
+- Letting the eval set leak into few-shot examples or fine-tuning data — you're then grading memorization.

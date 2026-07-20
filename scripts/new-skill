@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Scaffold a new skill from templates/skill and validate it.
+#
+# Usage: new-skill [--root <dir>] <name> "<description>"
+#   name         kebab-case skill name (becomes skills/<name>/)
+#   description  one-line routing phrase; required so skills never ship
+#                with placeholder descriptions
+set -euo pipefail
+
+script_dir=$(cd "$(dirname "$0")" && pwd)
+root=$(cd "$script_dir/.." && pwd)
+
+if [ "${1:-}" = "--root" ]; then
+  root=$(cd "$2" && pwd)
+  shift 2
+fi
+
+if [ $# -ne 2 ]; then
+  echo "usage: new-skill [--root <dir>] <name> \"<description>\"" >&2
+  exit 2
+fi
+
+name=$1
+description=$2
+
+case "$name" in
+  *[!a-z0-9-]* | -* | *- | "")
+    echo "new-skill: name must be kebab-case ([a-z0-9] with single hyphens): $name" >&2
+    exit 1
+    ;;
+esac
+
+dest="$root/skills/$name"
+if [ -e "$dest" ]; then
+  echo "new-skill: skills/$name already exists" >&2
+  exit 1
+fi
+
+template="$script_dir/../templates/skill/SKILL.md"
+if [ ! -f "$template" ]; then
+  echo "new-skill: template not found: $template" >&2
+  exit 1
+fi
+
+mkdir -p "$dest"
+sed -e "s/{{NAME}}/$name/g" -e "s/{{DESCRIPTION}}/${description//\//\\/}/g" \
+  "$template" > "$dest/SKILL.md"
+
+"$script_dir/validate-skills" "$root"
+echo "new-skill: created skills/$name/SKILL.md — now replace the TODO sections"

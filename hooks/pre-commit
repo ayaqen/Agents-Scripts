@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Blocks commits that would break skill or doc validation.
+# Enable with: git config core.hooksPath hooks
+set -euo pipefail
+
+repo_root=$(git rev-parse --show-toplevel)
+
+"$repo_root/scripts/validate-skills"
+"$repo_root/scripts/validate-docs"
+
+# Syntax-check any staged shell scripts.
+git diff --cached --name-only --diff-filter=ACM | while IFS= read -r file; do
+  path="$repo_root/$file"
+  [ -f "$path" ] || continue
+  if head -n 1 "$path" | grep -q 'bash'; then
+    bash -n "$path"
+  fi
+done

@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Validating commit helper: stages exactly the listed files, enforces a
+# Conventional Commit message, and refuses to commit if validation fails
+# or if unrelated files are already staged.
+#
+# Usage: committer -m "type(scope): message" <file>...
+set -euo pipefail
+
+script_dir=$(cd "$(dirname "$0")" && pwd)
+
+msg=""
+if [ "${1:-}" = "-m" ]; then
+  msg=${2:-}
+  shift 2 || true
+fi
+
+if [ -z "$msg" ] || [ $# -eq 0 ]; then
+  echo "usage: committer -m \"type(scope): message\" <file>..." >&2
+  exit 2
+fi
+
+if ! printf '%s' "$msg" | head -n 1 | grep -Eq \
+  '^(feat|fix|refactor|build|ci|chore|docs|perf|test)(\([a-z0-9./-]+\))?!?: .+'; then
+  echo "committer: message must follow Conventional Commits, e.g. 'feat(skills): add debug-loop'" >&2
+  exit 1
+fi
+
+already_staged=$(git diff --cached --name-only)
+if [ -n "$already_staged" ]; then
+  echo "committer: refusing — files are already staged:" >&2
+  printf '  %s\n' "$already_staged" >&2
+  echo "committer: commit or unstage them first so this commit stays exact" >&2
+  exit 1
+fi
+
+"$script_dir/validate-skills"
+"$script_dir/validate-docs"
+
+git add -- "$@"
+git commit -m "$msg"

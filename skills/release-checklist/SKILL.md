@@ -1,0 +1,30 @@
+---
+name: release-checklist
+description: "Cut and verify a software release: changelog, tag, publish, and proof it actually shipped."
+---
+
+# release-checklist
+
+A release isn't done when the command exits 0 — it's done when a fresh read of the registry/release page proves the artifact is live. This skill separates *preparing*, *publishing*, and *verifying*.
+
+## When to use
+
+- Explicitly asked to `release` or `publish`. Tagging or pushing alone is **not** a release, and a release ask must be explicit — never publish as a side effect of other work.
+
+## Workflow
+
+1. **Preflight.** Clean tree on the release branch, CI green on the exact commit you'll tag, version bumped everywhere the project stores it (manifest, lockfile, docs). Changelog: move `Unreleased` to the new version with today's date, matching the house style.
+2. **Commit and tag.** Conventional message (`chore(release): v1.2.3`), annotated tag matching the project's tag format (check `git tag -l` for precedent).
+3. **Publish** through the project's official channel — the CI release workflow if one exists (prefer it: reproducible, credentialed correctly), manual commands only if that's the documented path.
+4. **Verify with fresh reads, not exit codes:**
+   - Registry: the new version resolves publicly (e.g. `npm view <pkg>@<ver>`, `pip index versions`, crates.io page) with the expected dist-tag and publish time.
+   - GitHub: tag exists on the remote, Release object exists, body carries the changelog for this version and links to artifacts.
+   - Install test where cheap: fetch the published artifact into a temp dir and smoke it.
+5. **Close out.** Start the next `Unreleased` changelog section; commit. Report what shipped with links to the proof.
+
+## Pitfalls
+
+- Verifying from cache or memory. Registries and CDNs lag; read the authoritative source and note the timestamp.
+- Tagging a commit that CI never tested (last-second "tiny" edits between green run and tag).
+- Changelog written from `git log` alone — it describes commits, not user-visible change. Curate it.
+- Leaving the release half-done on failure. If publish fails mid-way, report exactly which steps completed; partial releases are worse than none when silent.

@@ -1,0 +1,51 @@
+---
+name: session-handoff
+description: "Write a handoff note so the next agent session or teammate can continue without re-discovery."
+---
+
+# session-handoff
+
+End-of-session knowledge capture. The next session starts with zero context; this note is what keeps hours of discovery from being repeated.
+
+## When to use
+
+- Ending a session with the task unfinished.
+- Context is nearly exhausted and work must continue in a fresh session.
+- Handing work to another person or agent.
+
+## Workflow
+
+1. Write the note to a predictable place: `HANDOFF.md` in the repo root (gitignored) or the task tracker — wherever the next session will actually look first.
+2. Structure it as **state, not story** (nobody needs a chronological diary):
+
+   ```markdown
+   # Handoff: <task, one line>
+
+   ## Goal
+   What "done" looks like, in one or two sentences.
+
+   ## Current state
+   - What is DONE and verified (with the proving command).
+   - What is IN PROGRESS and exactly where it stops.
+   - Branch, uncommitted files, anything stashed.
+
+   ## Next step
+   The single concrete action to take first, with the command.
+
+   ## Landmines
+   Dead ends already explored (and why they failed), flaky tests,
+   surprising couplings, decisions the user already made.
+
+   ## Verification
+   The command(s) that prove the whole task when finished.
+   ```
+
+3. The **Landmines** section is the highest-value part — negative knowledge is the most expensive to rediscover. Every failed hypothesis from your `debug-loop` notes belongs here.
+4. Leave the repo in a describable state: commit or stash cleanly; never leave mystery modifications for the next session to `git status` around.
+5. Sanity check: could someone continue using *only* this note and the repo? If they'd need something from your head, it's not written down yet.
+
+## Pitfalls
+
+- Writing what you did instead of what's true now. "Tried X, then Y" without outcomes is noise.
+- Vague next steps ("continue the refactor"). Name the file, the function, the command.
+- Leaving verified-vs-assumed ambiguous. Mark claims you actually proved (with what command) versus things you believe.
