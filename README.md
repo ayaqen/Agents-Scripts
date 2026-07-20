@@ -69,6 +69,7 @@ tests/               Self-tests for the tooling (run in CI)
 | [context-budget](skills/context-budget/SKILL.md) | Working in large codebases without drowning context |
 | [prompt-triage](skills/prompt-triage/SKILL.md) | Debugging LLM prompt / agent misbehavior |
 | [eval-design](skills/eval-design/SKILL.md) | Designing evals for an LLM-powered feature |
+| [model-tiering](skills/model-tiering/SKILL.md) | Splitting work between an orchestrating frontier model and cheaper executor subagents |
 | [skill-author](skills/skill-author/SKILL.md) | Creating or updating skills in this repo |
 
 ## Design principles

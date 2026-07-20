@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add model-tiering skill and AGENTS.md delegation rules: frontier-model orchestration with cheaper executor subagents.
+
 ## 0.1.0 - 2026-07-20
 
 Initial release: a portable rebuild of the agent-scripts concept, informed by a deep review of steipete/agent-scripts (see docs/design-decisions.md).
