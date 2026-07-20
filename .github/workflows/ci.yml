@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Syntax-check all shell scripts
+        run: |
+          find scripts hooks tests skills -type f -print0 |
+            while IFS= read -r -d '' f; do
+              if head -n 1 "$f" | grep -q 'bash'; then
+                bash -n "$f"
+              fi
+            done
+
+      - name: Shellcheck
+        run: |
+          find scripts hooks tests skills -type f -print0 |
+            while IFS= read -r -d '' f; do
+              if head -n 1 "$f" | grep -q 'bash'; then
+                shellcheck -S warning "$f"
+              fi
+            done
+
+      - name: Validate skills
+        run: ./scripts/validate-skills
+
+      - name: Validate docs
+        run: ./scripts/validate-docs
+
+      - name: Tooling self-tests
+        run: ./tests/run-tests.sh
+
+      - name: Doctor smoke
+        run: ./scripts/doctor

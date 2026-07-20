@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# Environment and repo health check. Run after cloning and whenever
+# something feels off. Read-only: never mutates anything.
+set -uo pipefail
+
+script_dir=$(cd "$(dirname "$0")" && pwd)
+repo_root=$(cd "$script_dir/.." && pwd)
+failures=0
+
+ok()   { printf 'ok   %s\n' "$1"; }
+fail() { printf 'FAIL %s\n' "$1"; failures=$((failures + 1)); }
+
+# Required tools
+for tool in git bash python3; do
+  if command -v "$tool" >/dev/null 2>&1; then
+    ok "$tool present ($(command -v "$tool"))"
+  else
+    fail "$tool missing"
+  fi
+done
+
+# Repo integrity
+if git -C "$repo_root" rev-parse --git-dir >/dev/null 2>&1; then
+  ok "git repository at $repo_root"
+else
+  fail "not a git repository: $repo_root"
+fi
+
+# Validators
+if "$script_dir/validate-skills" >/dev/null 2>&1; then
+  ok "all skills valid"
+else
+  fail "skill validation failed — run scripts/validate-skills for details"
+fi
+
+if "$script_dir/validate-docs" >/dev/null 2>&1; then
+  ok "all docs valid"
+else
+  fail "doc validation failed — run scripts/validate-docs for details"
+fi
+
+# Hook wiring (informational)
+hooks_path=$(git -C "$repo_root" config core.hooksPath 2>/dev/null || true)
+if [ "$hooks_path" = "hooks" ]; then
+  ok "pre-commit guardrail enabled (core.hooksPath=hooks)"
+else
+  echo "info hooks not wired; enable with: git config core.hooksPath hooks"
+fi
+
+# Installed skill links health
+for dir in "${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}" "${CODEX_SKILLS_DIR:-$HOME/.codex/skills}"; do
+  [ -d "$dir" ] || continue
+  broken=0
+  for entry in "$dir"/*; do
+    if [ -L "$entry" ] && [ ! -e "$entry" ]; then
+      broken=$((broken + 1))
+    fi
+  done
+  if [ "$broken" -eq 0 ]; then
+    ok "no broken links in $dir"
+  else
+    fail "$broken broken link(s) in $dir — run scripts/sync-skills to prune"
+  fi
+done
+
+echo
+if [ "$failures" -eq 0 ]; then
+  echo "doctor: healthy"
+else
+  echo "doctor: $failures problem(s) found"
+  exit 1
+fi

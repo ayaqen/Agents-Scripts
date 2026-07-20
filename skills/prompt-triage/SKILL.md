@@ -1,0 +1,33 @@
+---
+name: prompt-triage
+description: "Debug LLM prompt or agent misbehavior systematically: isolate inputs, form hypotheses, test one variable at a time."
+---
+
+# prompt-triage
+
+Debugging an LLM-powered feature is still debugging: reproduce, hypothesize, isolate. The difference is that the "code" includes prompts, context assembly, and sampling — and the failure is often in what the model *saw*, not what you *meant*.
+
+## When to use
+
+- An LLM feature returns wrong, malformed, or inconsistent output.
+- An agent ignores instructions, loops, or uses tools incorrectly.
+- Output quality regressed after a prompt, model, or context-pipeline change.
+
+## Workflow
+
+1. **Capture the exact request.** Log or reconstruct the *final rendered* prompt: system prompt, few-shots, retrieved context, tool schemas, and the sampled parameters (model id, temperature, max tokens). The bug is usually in this artifact, not in your template file.
+2. **Read what the model actually saw.** Common findings: truncated context, retrieval garbage, contradictory instructions from two sources, malformed few-shot examples, tool schemas that don't match the instructions.
+3. **Classify the failure:**
+   - *Never worked* → specification problem: the prompt underspecifies the behavior or asks for something the model can't verify.
+   - *Works sometimes* → distribution problem: rerun the same input N times; if output varies past tolerance, constrain (schema/structured output, lower temperature, tighter instructions) or verify downstream.
+   - *Regressed* → diff the rendered prompts (not the templates) between good and bad versions; bisect the change.
+4. **Change one variable per experiment** — one instruction, one example, one parameter — and rerun the same fixed inputs. Prompt changes interact; batched edits make results unattributable.
+5. **Prefer structural fixes over incantations:** schema-constrained output beats "please return valid JSON"; a validation-and-retry step beats a longer prompt; splitting a task the model conflates beats emphatic capitalization.
+6. **Pin the fix with an eval.** Add the failing case (and near-misses) to a small regression set (see `eval-design`) so the next prompt edit can't silently reintroduce it.
+
+## Pitfalls
+
+- Editing the template while the bug lives in context assembly, retrieval, or truncation.
+- Judging a stochastic system from n=1 runs — both the bug report and your "fix" need multiple samples.
+- Stacking instruction patches until the prompt contradicts itself. Periodically rewrite clean instead of appending.
+- Blaming the model before checking the rendered prompt. It's almost always the rendered prompt.

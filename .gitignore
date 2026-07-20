@@ -1,0 +1,6 @@
+.DS_Store
+*.log
+tmp/
+.venv/
+node_modules/
+AGENTS.local.md

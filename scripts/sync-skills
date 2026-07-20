@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+# Link this repo's skills into agent harness skill directories. Idempotent:
+# prints only what changed, prunes managed links whose targets vanished, and
+# never touches files or links it does not own (a link is "managed" iff its
+# target resolves into this repo).
+#
+# Targets:
+#   Claude Code   ~/.claude/skills/<name> -> <repo>/skills/<name>   (flat; the
+#                 harness only scans one level deep)
+#   Codex         ~/.codex/skills/agents-scripts -> <repo>/skills   (whole root;
+#                 the harness scans nested directories)
+#
+# Usage: sync-skills [--dry-run]
+# Env overrides: CLAUDE_SKILLS_DIR, CODEX_SKILLS_DIR
+set -euo pipefail
+
+script_dir=$(cd "$(dirname "$0")" && pwd)
+repo_root=$(cd "$script_dir/.." && pwd)
+skills_root="$repo_root/skills"
+
+claude_dir=${CLAUDE_SKILLS_DIR:-"$HOME/.claude/skills"}
+codex_dir=${CODEX_SKILLS_DIR:-"$HOME/.codex/skills"}
+
+dry_run=false
+if [ "${1:-}" = "--dry-run" ]; then
+  dry_run=true
+fi
+
+changes=0
+
+run() {
+  if [ "$dry_run" = true ]; then
+    echo "would: $*"
+  else
+    "$@"
+  fi
+  changes=$((changes + 1))
+}
+
+resolve() {
+  # Portable readlink -f (macOS ships without -f on older systems).
+  python3 -c 'import os, sys; print(os.path.realpath(sys.argv[1]))' "$1"
+}
+
+managed() {
+  # True if $1 is a symlink whose (possibly dangling) target is inside repo_root.
+  [ -L "$1" ] || return 1
+  target=$(resolve "$1")
+  case "$target" in
+    "$repo_root"/*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+link_one() {
+  src=$1 dst=$2
+  if [ -L "$dst" ]; then
+    if [ "$(resolve "$dst")" = "$(resolve "$src")" ]; then
+      return 0
+    fi
+    if managed "$dst"; then
+      echo "update: $dst -> $src"
+      run rm "$dst"
+      run ln -s "$src" "$dst"
+    else
+      echo "skip: $dst is a link owned by something else"
+    fi
+    return 0
+  fi
+  if [ -e "$dst" ]; then
+    echo "skip: $dst exists and is not a symlink (never clobbered)"
+    return 0
+  fi
+  echo "link: $dst -> $src"
+  run ln -s "$src" "$dst"
+}
+
+prune_stale() {
+  dir=$1
+  [ -d "$dir" ] || return 0
+  for entry in "$dir"/*; do
+    [ -L "$entry" ] || continue
+    if managed "$entry" && [ ! -e "$entry" ]; then
+      echo "prune: $entry (target gone)"
+      run rm "$entry"
+    fi
+  done
+}
+
+# Claude Code: flat per-skill links.
+mkdir -p "$claude_dir"
+for skill in "$skills_root"/*/; do
+  [ -f "$skill/SKILL.md" ] || continue
+  name=$(basename "$skill")
+  link_one "$skills_root/$name" "$claude_dir/$name"
+done
+prune_stale "$claude_dir"
+
+# Codex: one whole-root link.
+mkdir -p "$codex_dir"
+link_one "$skills_root" "$codex_dir/agents-scripts"
+prune_stale "$codex_dir"
+
+if [ "$changes" -eq 0 ]; then
+  echo "sync-skills: up to date, nothing changed"
+else
+  echo "sync-skills: $changes change(s)"
+fi
