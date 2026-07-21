@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Add social preview card (`.github/social-preview.png` + HTML source): dark 1280×640 card with harness chips, stats, and install command, rendered via headless Chromium.
 - README visual overhaul: centered hero with harness/tech/stat badge rows, dynamic release/license/stars badges, quick-nav, mermaid enforcement-pipeline diagram, harness support matrix, collapsible layout section, and star CTA footer.
 
 ## 0.3.0 - 2026-07-21

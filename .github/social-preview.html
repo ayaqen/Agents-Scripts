@@ -1,0 +1,81 @@
+<!-- Source for .github/social-preview.png (1280x640).
+     Regenerate (headless=new counts ~87px of window chrome into --window-size,
+     so request 727 and crop the capture to the top 1280x640):
+       chromium --headless=new --screenshot=.github/social-preview.png \
+         --window-size=1280,727 --hide-scrollbars .github/social-preview.html
+     Upload at: repo Settings -> General -> Social preview. -->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1280px; height: 640px; overflow: hidden; }
+  body {
+    background: #0d1117;
+    background-image: radial-gradient(ellipse 900px 500px at 85% -10%, #1f2a44 0%, rgba(13,17,23,0) 60%),
+                      radial-gradient(ellipse 700px 400px at 0% 110%, #16281f 0%, rgba(13,17,23,0) 55%);
+    font-family: 'Segoe UI', 'DejaVu Sans', Arial, sans-serif;
+    color: #e6edf3;
+    padding: 56px 72px;
+    position: relative;
+  }
+  .repo-path { font-size: 26px; color: #8b949e; letter-spacing: .5px; }
+  .repo-path b { color: #58a6ff; font-weight: 600; }
+  h1 { font-size: 78px; font-weight: 800; letter-spacing: -1px; margin-top: 6px; }
+  .tagline { font-size: 30px; color: #c9d1d9; margin-top: 14px; font-weight: 500; }
+  .subline { font-size: 24px; color: #8b949e; margin-top: 8px; }
+  .chips { display: flex; gap: 14px; margin-top: 34px; flex-wrap: wrap; }
+  .chip {
+    font-size: 24px; font-weight: 700; color: #fff;
+    padding: 12px 22px; border-radius: 10px; white-space: nowrap;
+  }
+  .claude   { background: #D97757; }
+  .codex    { background: #1c2128; border: 2px solid #444c56; }
+  .cursor   { background: #21262d; border: 2px solid #444c56; }
+  .copilot  { background: #8957e5; }
+  .windsurf { background: #0FA5A5; }
+  .gemini   { background: #4285F4; }
+  .stats { display: flex; gap: 26px; margin-top: 26px; }
+  .stat { font-size: 24px; color: #8b949e; }
+  .stat b { color: #e6edf3; font-weight: 700; }
+  .stat .dot { color: #3fb950; }
+  .termbar {
+    position: absolute; left: 72px; right: 72px; bottom: 48px;
+    background: #161b22; border: 1px solid #30363d;
+    border-radius: 12px; padding: 16px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .cmd { font-family: 'Cascadia Mono', 'DejaVu Sans Mono', monospace; font-size: 21px; color: #e6edf3; white-space: nowrap; }
+  .cmd .prompt { color: #3fb950; }
+  .ci { font-size: 19px; color: #3fb950; font-weight: 700; white-space: nowrap; margin-left: 24px; }
+</style>
+</head>
+<body>
+  <div>
+    <div class="repo-path"><b>ayaqen</b> / Agents-Scripts</div>
+    <h1>Agents-Scripts</h1>
+    <div class="tagline">Curated, CI-enforced skills &amp; subagents for AI coding agents</div>
+    <div class="subline">One-line install &middot; zero dependencies &middot; every claim enforced, not asserted</div>
+    <div class="chips">
+      <span class="chip claude">Claude Code</span>
+      <span class="chip codex">Codex</span>
+      <span class="chip cursor">Cursor</span>
+      <span class="chip copilot">Copilot</span>
+      <span class="chip windsurf">Windsurf</span>
+      <span class="chip gemini">Gemini CLI</span>
+    </div>
+    <div class="stats">
+      <span class="stat"><span class="dot">&#9679;</span> <b>17</b> skills</span>
+      <span class="stat"><span class="dot">&#9679;</span> <b>5</b> subagents</span>
+      <span class="stat"><span class="dot">&#9679;</span> <b>50</b> eval scenarios</span>
+      <span class="stat"><span class="dot">&#9679;</span> <b>80</b> self-tests</span>
+      <span class="stat"><span class="dot">&#9679;</span> <b>9</b> CI gates</span>
+    </div>
+  </div>
+  <div class="termbar">
+    <span class="cmd"><span class="prompt">$</span> /plugin marketplace add ayaqen/Agents-Scripts</span>
+    <span class="ci">&#10003; CI passing &middot; Ubuntu + macOS</span>
+  </div>
+</body>
+</html>
