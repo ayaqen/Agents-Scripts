@@ -1,0 +1,209 @@
+#!/usr/bin/env python3
+"""Run semantic evals: execute each skill's scenarios with a headless agent
+and grade the transcript against the rubric.
+
+This is the on-demand half of the eval story (scripts/validate-evals is the
+offline structural half). It needs a real agent CLI and costs tokens, so it
+is NOT a CI gate — policy in docs/evals.md.
+
+Usage:
+  eval-skills --list                 # show skills and scenario counts (offline)
+  eval-skills --dry-run [--skill S]  # show what would run, run nothing (offline)
+  eval-skills [--skill S] [--fail-under 0.8]
+
+Environment:
+  EVAL_AGENT_CMD   command reading a prompt on stdin, writing transcript to
+                   stdout (default: "claude -p")
+  EVAL_JUDGE_CMD   grading command, same contract (default: EVAL_AGENT_CMD)
+  EVAL_TIMEOUT     per-invocation timeout in seconds (default: 900)
+
+Results are written to evals/results/run-<utc>.json and are meant to be
+committed — history is the regression baseline.
+"""
+
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+
+JUDGE_INSTRUCTIONS = """You are grading an AI agent's work transcript against a rubric.
+For each rubric criterion decide pass=true only if the transcript clearly
+demonstrates it; when in doubt, fail it. Respond with ONLY a JSON array,
+no prose, one object per criterion, in order:
+[{"criterion": "...", "pass": true, "evidence": "one line citing the transcript"}]
+"""
+
+
+def load_scenarios(root):
+    evals_dir = os.path.join(root, "evals")
+    out = []
+    if not os.path.isdir(evals_dir):
+        return out
+    for name in sorted(os.listdir(evals_dir)):
+        path = os.path.join(evals_dir, name, "scenarios.json")
+        if name == "results" or not os.path.isfile(path):
+            continue
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+        out.append((name, data.get("scenarios", [])))
+    return out
+
+
+def run_cmd(cmd, stdin_text, timeout):
+    proc = subprocess.run(
+        ["sh", "-c", cmd],
+        input=stdin_text,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+    return proc.returncode, proc.stdout
+
+
+def parse_judge_output(text, expected):
+    start, end = text.find("["), text.rfind("]")
+    if start == -1 or end <= start:
+        return None
+    try:
+        verdicts = json.loads(text[start:end + 1])
+    except ValueError:
+        return None
+    if not isinstance(verdicts, list) or len(verdicts) != expected:
+        return None
+    return verdicts
+
+
+def grade(scenario, transcript, judge_cmd, timeout):
+    results = []
+    judge_items = [r for r in scenario["rubric"] if r["grader"] == "judge"]
+    for item in scenario["rubric"]:
+        if item["grader"] == "command":
+            rc, _ = run_cmd(item["command"], "", timeout)
+            results.append({
+                "criterion": item["criterion"],
+                "grader": "command",
+                "pass": rc == 0,
+                "evidence": "command exit %d" % rc,
+            })
+    if judge_items:
+        prompt = "%s\nRUBRIC:\n%s\n\nTRANSCRIPT:\n%s\n" % (
+            JUDGE_INSTRUCTIONS,
+            json.dumps([i["criterion"] for i in judge_items], indent=2),
+            transcript,
+        )
+        _, out = run_cmd(judge_cmd, prompt, timeout)
+        verdicts = parse_judge_output(out, len(judge_items))
+        for i, item in enumerate(judge_items):
+            if verdicts is None:
+                results.append({
+                    "criterion": item["criterion"],
+                    "grader": "judge",
+                    "pass": False,
+                    "evidence": "judge output unparsable — counted as fail",
+                })
+            else:
+                v = verdicts[i]
+                results.append({
+                    "criterion": item["criterion"],
+                    "grader": "judge",
+                    "pass": bool(v.get("pass")),
+                    "evidence": str(v.get("evidence", ""))[:300],
+                })
+    return results
+
+
+def main():
+    args = sys.argv[1:]
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    mode = "run"
+    skill_filter = None
+    fail_under = None
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a == "--list":
+            mode = "list"
+        elif a == "--dry-run":
+            mode = "dry-run"
+        elif a == "--skill":
+            i += 1
+            skill_filter = args[i]
+        elif a == "--fail-under":
+            i += 1
+            fail_under = float(args[i])
+        else:
+            print("eval-skills: unknown argument %s" % a, file=sys.stderr)
+            return 2
+        i += 1
+
+    all_scenarios = load_scenarios(root)
+    if skill_filter is not None:
+        all_scenarios = [(n, s) for n, s in all_scenarios if n == skill_filter]
+        if not all_scenarios:
+            print("eval-skills: no evals for skill %s" % skill_filter, file=sys.stderr)
+            return 2
+
+    if mode == "list":
+        for name, scenarios in all_scenarios:
+            print("%-24s %d scenario(s)" % (name, len(scenarios)))
+        print("eval-skills: %d skill(s)" % len(all_scenarios))
+        return 0
+
+    agent_cmd = os.environ.get("EVAL_AGENT_CMD", "claude -p")
+    judge_cmd = os.environ.get("EVAL_JUDGE_CMD", agent_cmd)
+    timeout = int(os.environ.get("EVAL_TIMEOUT", "900"))
+
+    if mode == "dry-run":
+        print("agent command: %s" % agent_cmd)
+        print("judge command: %s" % judge_cmd)
+        for name, scenarios in all_scenarios:
+            for sc in scenarios:
+                print("would run: %s / %s (%d rubric items)"
+                      % (name, sc["id"], len(sc["rubric"])))
+        return 0
+
+    tool = shutil.which(agent_cmd.split()[0])
+    if tool is None:
+        print("eval-skills: agent command not found: %s\n"
+              "Set EVAL_AGENT_CMD to a CLI that reads a prompt on stdin "
+              "(e.g. 'claude -p')." % agent_cmd, file=sys.stderr)
+        return 2
+
+    stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+    run_results = {"run": stamp, "agent_cmd": agent_cmd, "skills": {}}
+    total_pass = total_items = 0
+    for name, scenarios in all_scenarios:
+        skill_results = []
+        for sc in scenarios:
+            prompt = "SETUP (context):\n%s\n\nTASK:\n%s\n" % (sc["fixture"], sc["task"])
+            try:
+                _, transcript = run_cmd(agent_cmd, prompt, timeout)
+            except subprocess.TimeoutExpired:
+                transcript = "(agent timed out)"
+            graded = grade(sc, transcript, judge_cmd, timeout)
+            passed = sum(1 for g in graded if g["pass"])
+            total_pass += passed
+            total_items += len(graded)
+            skill_results.append({"scenario": sc["id"], "graded": graded,
+                                  "score": "%d/%d" % (passed, len(graded))})
+            print("%-24s %-28s %d/%d" % (name, sc["id"], passed, len(graded)))
+        run_results["skills"][name] = skill_results
+
+    results_dir = os.path.join(root, "evals", "results")
+    os.makedirs(results_dir, exist_ok=True)
+    out_path = os.path.join(results_dir, "run-%s.json" % stamp)
+    with open(out_path, "w", encoding="utf-8") as fh:
+        json.dump(run_results, fh, indent=2)
+        fh.write("\n")
+    overall = (total_pass / total_items) if total_items else 0.0
+    print("eval-skills: %d/%d criteria passed (%.0f%%) -> %s"
+          % (total_pass, total_items, overall * 100, os.path.relpath(out_path, root)))
+    if fail_under is not None and overall < fail_under:
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

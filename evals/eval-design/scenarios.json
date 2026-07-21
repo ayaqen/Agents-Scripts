@@ -1,0 +1,40 @@
+{
+  "skill": "eval-design",
+  "scenarios": [
+    {
+      "id": "build-eval-from-scratch",
+      "task": "We're about to ship an LLM feature that extracts shipping addresses from customer emails into structured fields. No eval exists yet. Build one before we ship: define what 'good' means, assemble cases in the right order, and pick appropriate graders per criterion.",
+      "fixture": "A prototype extract_address(email_text) in src/address_extract.py calls an LLM with no eval harness. fixtures/emails/ contains 12 real anonymized customer emails from support tickets, plus fixtures/bug_reports.md describing three past extraction failures (missing apartment number, wrong country default, hallucinated zip code). No synthetic edge cases exist yet.",
+      "rubric": [
+        {"criterion": "Wrote a written behavior contract (what's correct, unacceptable, and merely stylistic) before collecting or grading any cases", "grader": "judge"},
+        {"criterion": "Built the case set starting from the provided real emails and bug reports, then deliberately added synthetic edge cases (e.g. missing address, non-US format) rather than starting from invented cases", "grader": "judge"},
+        {"criterion": "Used structural/exact checks (required-field presence, schema validity) for what can be checked exactly, reserving any model-graded judgment for genuinely subjective aspects only", "grader": "judge"},
+        {"criterion": "Did not build an eval that covers only happy-path emails, ignoring the three known bug-report failure modes", "grader": "judge"}
+      ]
+    },
+    {
+      "id": "grader-selection-tradeoff",
+      "task": "Add graders to the FAQ-answering eval's rubric. Some cases can be checked exactly (a required dollar figure or URL appears) and others need a judgment call (tone appropriateness). Pick the cheapest honest grader per case, and calibrate any model-graded rubric before trusting it.",
+      "fixture": "evals/faq-answer/cases.json has 8 draft cases with no graders assigned. Two check whether a specific dollar figure and URL appear in the answer (deterministically verifiable). Three check formatting (under 150 words, no markdown headers). Three judge whether the tone is 'appropriately empathetic' for a complaint. A junior teammate's earlier attempt graded all eight with one lenient LLM-judge prompt that passed 8/8 even on a known-bad answer in fixtures/known_bad_answer.txt.",
+      "rubric": [
+        {"criterion": "Used exact/structural checks (string/URL containment, word count, absence of markdown headers) for the deterministically verifiable cases instead of routing them through a model judge", "grader": "judge"},
+        {"criterion": "Reserved the model-graded rubric only for the genuinely subjective tone cases", "grader": "judge"},
+        {"criterion": "Ran the chosen tone grader against fixtures/known_bad_answer.txt and confirmed it correctly flags/fails that known-bad case before trusting it", "grader": "judge"},
+        {"criterion": "Did not keep the prior all-cases-through-one-lenient-LLM-judge approach that passed the known-bad answer", "grader": "judge"},
+        {"criterion": "Not every case in the updated cases file is graded by the model judge — some use a non-judge grader", "grader": "command", "command": "python3 -c \"import json,sys; d=json.load(open('evals/faq-answer/cases.json')); g=[c.get('grader') for c in d]; sys.exit(0 if any(x != 'judge' for x in g) else 1)\""}
+      ]
+    },
+    {
+      "id": "gate-and-report-regression",
+      "task": "A prompt change for the ticket-priority classifier shipped after someone eyeballed a few outputs instead of running the eval. It silently dropped accuracy on urgent-priority tickets specifically. Set up the eval so this class of regression can't slip through silently again.",
+      "fixture": "evals/ticket-priority/ has cases.json with 40 cases across four classes (urgent, high, normal, low) and run_eval.py that currently prints only one aggregate number (e.g. '92% pass'). The new prompt scores 98% on normal/low and 40% on urgent, but the aggregate looked fine because urgent is a small slice. There is no CI hook and no gate — merges happen without anyone running run_eval.py.",
+      "rubric": [
+        {"criterion": "Changed reporting to break out pass rate per class/case rather than aggregate-only, surfacing the urgent-class collapse the single number hid", "grader": "judge"},
+        {"criterion": "Wired the eval into an actual gate (CI step or an explicit documented manual gate before merge) rather than leaving it an easily-skipped script", "grader": "judge"},
+        {"criterion": "Added the discovered urgent-ticket regression as a new eval case so it can't silently reoccur", "grader": "judge"},
+        {"criterion": "Did not simply lower expectations or declare the regression acceptable without an explicit, documented decision", "grader": "judge"},
+        {"criterion": "run_eval.py reports results broken down by class or case, not only a single aggregate figure", "grader": "command", "command": "grep -Eq 'class|per_case|breakdown|by_case' evals/ticket-priority/run_eval.py"}
+      ]
+    }
+  ]
+}

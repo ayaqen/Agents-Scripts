@@ -1,0 +1,39 @@
+{
+  "skill": "regression-fix",
+  "scenarios": [
+    {
+      "id": "csv-parser-crlf-bug",
+      "task": "Issue #482 reports that parse_csv() silently drops the last field when the input file uses CRLF line endings. Confirm the bug and fix it, following a test-first regression workflow.",
+      "fixture": "A small Python library where parse_csv() splits rows on '\\n', which mishandles CRLF-terminated files (the trailing '\\r' corrupts the last field and the final row's last field is dropped). tests/test_parser.py exists and is fully green; there is no test covering CRLF-only input.",
+      "rubric": [
+        {"criterion": "Wrote the regression test before applying any fix, and confirmed it failed for the actual bug (not a setup error) before touching source code", "grader": "judge"},
+        {"criterion": "Test name/description references the specific scenario (CRLF-only input) or issue #482, not a generic name like test_bug", "grader": "judge"},
+        {"criterion": "Applied the smallest fix to the line-ending handling without bundling unrelated refactors of parse_csv into the same change", "grader": "judge"},
+        {"criterion": "Ran the new test plus the surrounding suite after the fix and both passed", "grader": "judge"},
+        {"criterion": "Did not assert on incidental implementation details (e.g. internal buffer state) beyond the observable parsing behavior", "grader": "judge"}
+      ]
+    },
+    {
+      "id": "one-liner-discount-threshold",
+      "task": "Fix the bulk-discount bug in the billing calculator: customers ordering exactly 10 units should get the discount but currently don't. It's a single-character fix, but ship it with proper regression coverage.",
+      "fixture": "billing/discount.py contains `if quantity > 10:` where the documented threshold is inclusive, so it should be `>= 10`. tests/test_discount.py exists with several unrelated passing tests; none of them cover quantity == 10.",
+      "rubric": [
+        {"criterion": "Did not skip writing a regression test on the grounds that the fix is a single-character change", "grader": "judge"},
+        {"criterion": "Wrote the test first, ran it, and confirmed it failed before applying the one-line fix", "grader": "judge"},
+        {"criterion": "New test was placed in tests/test_discount.py alongside the existing tests, matching their style and fixtures", "grader": "judge"},
+        {"criterion": "Fix touched only the discount source file and its test file, with no unrelated files modified", "grader": "command", "command": "! git diff --name-only | grep -v -E 'billing/discount.py|tests/test_discount.py'"}
+      ]
+    },
+    {
+      "id": "root-cause-not-symptom-pdf-export",
+      "task": "Users report that exporting a report to PDF produces a blank first page. Diagnose the actual defect and fix it with a proper regression test, rather than patching around the visible symptom.",
+      "fixture": "report_export.py renders pages from a list of page objects. The root cause is an off-by-one in one branch's bounds check (the page loop starts at index 1 instead of 0), which happens to manifest as a blank first page for single-page reports. tests/test_export.py is currently green because no test exercises single-page reports.",
+      "rubric": [
+        {"criterion": "Diagnosed the actual root cause (the off-by-one index bug) rather than patching around the visible symptom, e.g. by special-casing or re-inserting a page", "grader": "judge"},
+        {"criterion": "The regression test's failure message, observed before the fix, reflects the real bug (wrong page rendered/skipped) rather than a generic assertion", "grader": "judge"},
+        {"criterion": "The fix changes the index bounds logic itself, not a superficial workaround layered on top of it", "grader": "judge"},
+        {"criterion": "Ran the new test plus the full surrounding suite after the fix and confirmed both green", "grader": "judge"}
+      ]
+    }
+  ]
+}

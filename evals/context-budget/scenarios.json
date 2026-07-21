@@ -1,0 +1,38 @@
+{
+  "skill": "context-budget",
+  "scenarios": [
+    {
+      "id": "find-config-loader-large-repo",
+      "task": "Find where the application's database connection timeout is configured and change it from 30 seconds to 60 seconds. This is a large monorepo, so don't read more than you need to.",
+      "fixture": "A monorepo with 400+ files across services/, libs/, and infra/. The timeout is set by a DB_TIMEOUT_SECONDS constant in libs/db/config.py. Unrelated large files sit in the same directory tree: a 2000-line generated schema.py and a 1500-line migrations file, both irrelevant to the task.",
+      "rubric": [
+        {"criterion": "Used grep/glob to locate the timeout setting before reading any file in full", "grader": "judge"},
+        {"criterion": "Read only the relevant region of libs/db/config.py rather than the entire file", "grader": "judge"},
+        {"criterion": "Did not open the large generated schema or migrations files, which were irrelevant to the task (Pitfall: whole-file reads as a habit)", "grader": "judge"},
+        {"criterion": "Made the edit and confirmed it targeted the actual constant used for the timeout", "grader": "judge"}
+      ]
+    },
+    {
+      "id": "sweep-across-many-files",
+      "task": "Every module under services/ that calls the legacy LegacyLogger class needs to be identified so they can be migrated later. Produce a list of files and call sites; you don't need to migrate them yet. services/ has around 120 files.",
+      "fixture": "A large repo where services/ contains roughly 120 files, about 15 of which reference LegacyLogger in varying ways (import, instantiation, method calls). No existing index of these call sites exists.",
+      "rubric": [
+        {"criterion": "Delegated the multi-file sweep to a subagent (or used an equivalently scoped grep-based search) that returns a conclusion/list rather than pulling all 120 files' contents into the main context", "grader": "judge"},
+        {"criterion": "Kept only the answer (file list and call sites) in context, not the raw contents of every scanned file", "grader": "judge"},
+        {"criterion": "Searched/batched so each matching file was inspected once rather than being re-opened multiple times", "grader": "judge"},
+        {"criterion": "Did not paste large raw search or file-dump output verbatim into any running notes (Pitfall)", "grader": "judge"}
+      ]
+    },
+    {
+      "id": "long-task-nearing-exhaustion",
+      "task": "Continue this multi-step migration task. You are already deep into it and context is running low. Keep working, but manage the budget so the work already done isn't lost if the session ends abruptly.",
+      "fixture": "A long-running task migrating 30 files from an old API to a new one; 18 files are done and verified, 12 remain. No running notes file exists yet in the repo. The session's context is estimated to be over 85% consumed.",
+      "rubric": [
+        {"criterion": "Recognized the near-exhaustion signal and externalized state (a notes or HANDOFF-style file) before continuing further work", "grader": "judge"},
+        {"criterion": "Did not paste large raw outputs, such as full diffs or test log dumps, into the notes file verbatim (Pitfall)", "grader": "judge"},
+        {"criterion": "Recorded conclusions and file-by-file status rather than re-derivable details like line numbers or full function signatures", "grader": "judge"},
+        {"criterion": "Prioritized writing the handoff/notes over squeezing in more migration work once the budget was critically low (Pitfall: spending the last 10% of context on work instead of the handoff)", "grader": "judge"}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "skill": "security-review",
+  "scenarios": [
+    {
+      "id": "path-traversal-file-download",
+      "task": "Do a security review of the diff adding a new file-download endpoint to this Flask app before it merges. Report any confirmed, exploitable findings with fixes.",
+      "fixture": "A diff adding `GET /files/<name>` in `app/routes/files.py`, implemented as `open(os.path.join(UPLOAD_DIR, name))` with no validation of `name`, which comes directly from the URL path. The same file already contains three unrelated, pre-existing endpoints untouched by this diff.",
+      "rubric": [
+        {"criterion": "Mapped the untrusted input entry point (the URL path parameter) before proposing any fix", "grader": "judge"},
+        {"criterion": "Constructed a concrete malicious input (e.g. a `../../../etc/passwd` or absolute-path value for `name`) demonstrating the traversal, rather than describing the risk abstractly", "grader": "judge"},
+        {"criterion": "Reported severity as impact times likelihood explicitly rather than a bare 'critical'/'minor' label", "grader": "judge"},
+        {"criterion": "Proposed a fix at the sink (bounding/normalizing the resolved path against UPLOAD_DIR) rather than only adding a check at the call site", "grader": "judge"},
+        {"criterion": "Recommended or added a regression test that encodes the malicious path input", "grader": "judge"},
+        {"criterion": "Stated explicitly which of the pre-existing endpoints were and weren't examined, instead of issuing a blanket 'no other issues found'", "grader": "judge"}
+      ]
+    },
+    {
+      "id": "llm-output-into-shell",
+      "task": "Do a security review of a diff that adds a support-ticket triage bot to this codebase before it merges. Focus on how untrusted content flows through the system.",
+      "fixture": "A diff adding a triage bot: it fetches ticket text via an internal API (`fetch_ticket(ticket_id)`), passes the raw ticket body into an LLM prompt as context, then takes the LLM's suggested shell command and executes it via `subprocess.run(llm_output, shell=True)` to 'auto-remediate' common issues. A code comment reads: 'ticket API is internal-only, so this is safe.'",
+      "rubric": [
+        {"criterion": "Identified both the ticket text and the LLM's own output as untrusted input requiring validation, not just the external API call", "grader": "judge"},
+        {"criterion": "Explicitly rejected the code comment's 'internal-only so it's safe' assumption, noting that trust boundaries move over time", "grader": "judge"},
+        {"criterion": "Constructed a concrete malicious ticket body that would drive the LLM to suggest a dangerous command reaching subprocess.run(shell=True)", "grader": "judge"},
+        {"criterion": "Proposed a fix that constrains the sink (dropping shell=True / allowlisting commands) rather than only sanitizing the ticket text on ingestion", "grader": "judge"},
+        {"criterion": "Recommended a regression test that encodes the malicious ticket text driving the exploit", "grader": "judge"}
+      ]
+    },
+    {
+      "id": "hardcoded-secret-verbose-error",
+      "task": "Do a security review of a diff adding a payments webhook handler before it merges, and report any findings with concrete severity and fixes.",
+      "fixture": "A diff adding a webhook handler: `config.py` hardcodes a live-looking API key as a fallback default (`STRIPE_KEY = os.environ.get('STRIPE_KEY', 'sk_live_51Hxxxxx...')`), and the error handler in `handlers/webhook.py` returns the full exception traceback -- including file paths and a repr of the config object -- directly in the HTTP response body on any failure.",
+      "rubric": [
+        {"criterion": "Flagged the hardcoded secret as a finding independent of constructing an exploit for it", "grader": "judge"},
+        {"criterion": "Constructed a concrete failing request that triggers the webhook error path and demonstrated the traceback (and secret) leaking into the HTTP response", "grader": "judge"},
+        {"criterion": "Assigned differentiated severity to the hardcoded secret versus the verbose error leak rather than flattening both to the same label", "grader": "judge"},
+        {"criterion": "Proposed a fix for the error handler that removes internal detail from the response sink itself, not just a patch at the one call site that failed", "grader": "judge"},
+        {"criterion": "Recommended a regression test asserting the response body never contains the secret or a traceback", "grader": "judge"},
+        {"criterion": "Did not report 'no other issues found' without stating what surface (e.g. webhook auth, rate limiting) was actually reviewed", "grader": "judge"}
+      ]
+    }
+  ]
+}

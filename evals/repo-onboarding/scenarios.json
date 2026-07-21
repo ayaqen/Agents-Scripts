@@ -1,0 +1,42 @@
+{
+  "skill": "repo-onboarding",
+  "scenarios": [
+    {
+      "id": "map-before-first-change",
+      "task": "You've just joined this project and need to add a small feature to the CLI's output formatting. Before writing any code, produce onboarding notes: repo layout, entry points, the real test command, and where your change should go.",
+      "fixture": "An unfamiliar mid-size CLI repo. README.md documents `python setup.py test` as the test command (stale, no longer works). .github/workflows/ci.yml actually runs `pytest -q`. AGENTS.md describes dependency-injection conventions. scripts/repo-map.sh exists and works. src/formatters/ has an old formatter (written 2019, no docstrings, builds output via string concatenation) and a newer formatter (merged last month, uses an f-string template pattern documented in its PR description).",
+      "rubric": [
+        {"criterion": "Ran ./scripts/repo-map.sh (or an equivalent structural survey) before reading individual source files", "grader": "judge"},
+        {"criterion": "Read README, AGENTS.md/CLAUDE.md, and CONTRIBUTING before diving into source code", "grader": "judge"},
+        {"criterion": "Identified `pytest -q` from the CI workflow as the real test command instead of trusting the stale README instruction", "grader": "judge"},
+        {"criterion": "Ran the baseline test suite before proposing or making any change", "grader": "judge"},
+        {"criterion": "Chose the recently merged formatter's pattern to imitate rather than the older 2019 formatter", "grader": "judge"},
+        {"criterion": "Final notes explicitly stated where the change goes, what pattern to imitate, and which tests must stay green", "grader": "judge"}
+      ]
+    },
+    {
+      "id": "remap-after-large-refactor",
+      "task": "You worked in this repo months ago and a large refactor has merged since then. Before estimating effort for a new caching feature, re-establish your mental model of the current structure rather than relying on your old memory of it.",
+      "fixture": "A repo where the module layout changed significantly since the last visit (services/ was split into services/ingest/ and services/query/), CONTRIBUTING.md gained a new section on error-handling conventions, and CI now runs an additional lint step before tests. No cached repo map exists yet.",
+      "rubric": [
+        {"criterion": "Ran the repo mapper for a fresh structural overview rather than relying on memory of the old layout", "grader": "judge"},
+        {"criterion": "Read CONTRIBUTING.md's updated conventions before proposing a design for the caching feature", "grader": "judge"},
+        {"criterion": "Located and used the current CI-defined test command rather than assuming the previously known one still applies", "grader": "judge"},
+        {"criterion": "Traced one representative request path end-to-end through the new services/ingest and services/query layering before estimating", "grader": "judge"},
+        {"criterion": "Produced explicit notes covering where the change goes, the pattern to imitate, and which tests must stay green", "grader": "judge"}
+      ]
+    },
+    {
+      "id": "trace-endpoint-before-adding-one",
+      "task": "Before implementing a new /export endpoint, trace how an existing similar endpoint flows through the system end to end and document the conventions you must follow.",
+      "fixture": "A Flask-based API repo with routes/, services/, and repositories/ layers. Recently merged PRs show a consistent pattern: routes validate input via pydantic schemas, call a service function, and the service calls a repository; errors use a custom AppError raised from services and caught by a central Flask error handler. Older code (pre-2022) instead uses raw dict access and bare except blocks. The test command is not documented anywhere except .github/workflows/api-tests.yml, which runs `pytest tests/ --maxfail=1`.",
+      "rubric": [
+        {"criterion": "Traced an existing similar endpoint through routes -> service -> repository before designing the new one", "grader": "judge"},
+        {"criterion": "Identified the pydantic-schema plus AppError pattern from recent code as the convention to follow, not the older raw-dict/bare-except style", "grader": "judge"},
+        {"criterion": "Found the real test command from the CI workflow file rather than guessing or assuming a README-documented one", "grader": "judge"},
+        {"criterion": "Ran the baseline test suite before making any changes", "grader": "judge"},
+        {"criterion": "Documented explicitly which tests must stay green for the new endpoint", "grader": "judge"}
+      ]
+    }
+  ]
+}

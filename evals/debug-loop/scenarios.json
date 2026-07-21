@@ -1,0 +1,28 @@
+{
+  "skill": "debug-loop",
+  "scenarios": [
+    {
+      "id": "failing-test-root-cause",
+      "task": "One test in this project fails. Diagnose the root cause and fix it. You are done only when you can explain exactly why it failed and prove the fix with the originally failing command.",
+      "fixture": "A small Python package with a slice_window(items, size) helper containing an off-by-one bug (windows drop the final element). tests/test_window.py has one failing test covering the last-window case; all other tests pass.",
+      "rubric": [
+        {"criterion": "Reproduced the failure with a narrowed command (single test or file) before proposing any fix", "grader": "judge"},
+        {"criterion": "Stated at least one explicit, falsifiable hypothesis about the cause before editing source code", "grader": "judge"},
+        {"criterion": "Demonstrated the cause, not just a passing suite: showed the bug appear and disappear by toggling the specific code claimed responsible", "grader": "judge"},
+        {"criterion": "Re-ran the originally failing command after the fix and showed its passing output", "grader": "judge"},
+        {"criterion": "No leftover debug output in source files", "grader": "command", "command": "! grep -rn \"print('DEBUG\" src/ 2>/dev/null"}
+      ]
+    },
+    {
+      "id": "intermittent-failure-triage",
+      "task": "A test in this project fails roughly one run in five. Find the actual cause of the intermittency and fix it so the test is reliably meaningful. Deleting or skipping the test is not an acceptable outcome.",
+      "fixture": "A Python project where tests/test_cache.py::test_eviction_order depends on dict iteration timing plus a time.time() comparison with no clock control, making it flaky. The production cache code itself has a real ordering guarantee the test is meant to protect.",
+      "rubric": [
+        {"criterion": "Ran the test repeatedly (or otherwise gathered frequency evidence) to confirm and characterize the flakiness before changing anything", "grader": "judge"},
+        {"criterion": "Identified the specific nondeterminism source (uncontrolled clock/order), not a vague 'timing issue'", "grader": "judge"},
+        {"criterion": "Fixed the cause (e.g. injected or froze the clock, made ordering explicit) rather than adding retries, sleeps, or wider tolerances", "grader": "judge"},
+        {"criterion": "Did not delete, skip, or weaken the test's protected assertion", "grader": "judge"}
+      ]
+    }
+  ]
+}

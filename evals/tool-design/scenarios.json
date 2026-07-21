@@ -1,0 +1,41 @@
+{
+  "skill": "tool-design",
+  "scenarios": [
+    {
+      "id": "rest-mirror-refactor",
+      "task": "We wrapped our internal ticketing REST API 1:1 as MCP tools (get_ticket, list_tickets, patch_ticket, list_ticket_comments, create_comment, list_ticket_watchers, ...) and agents constantly chain four or five calls just to triage a new ticket. Redesign the toolset around what agents actually do, not the existing endpoints.",
+      "fixture": "tools/ticketing.py defines 11 thin one-to-one wrappers around the REST API, each named after its HTTP route (e.g. get_v2_tickets_id, patch_v2_tickets_id). Transcripts in fixtures/transcripts/ show agents always calling get_ticket -> list_ticket_comments -> list_ticket_watchers -> patch_ticket(status) -> create_comment in that exact sequence for every 'triage' task, and sometimes getting the order wrong (patching status before reading comments).",
+      "rubric": [
+        {"criterion": "Collapsed the observed always-together sequence (read ticket + comments + watchers, then update status + post a comment) into a task-shaped tool instead of leaving five separate REST-mirroring calls", "grader": "judge"},
+        {"criterion": "Did not simply rename the existing 1:1 route wrappers without changing the call structure agents must chain", "grader": "judge"},
+        {"criterion": "Wrote descriptions stating when to use vs. when NOT to use each remaining tool, naming the alternative for the other case", "grader": "judge"},
+        {"criterion": "Kept the new/changed tool's schema minimal rather than introducing a kitchen-sink tool with a dozen optional parameters as the replacement", "grader": "judge"},
+        {"criterion": "A consolidated, task-shaped tool now exists in the ticketing tool module", "grader": "command", "command": "grep -Eqi 'def (triage|handle)_ticket' tools/ticketing.py"}
+      ]
+    },
+    {
+      "id": "silent-error-and-truncation-fix",
+      "task": "Agents keep retry-looping on the search_documents tool and occasionally hallucinate document contents. Figure out why from the tool's current error and output behavior, and fix the tool definition — not just the backend.",
+      "fixture": "tools/search.py's search_documents(query) returns the entire raw backend JSON response uncapped (frequently 200KB+, including internal-only fields), and returns the literal string 'Error: invalid input' with no further detail whenever query is empty or malformed. Its description is copied verbatim from the backend docstring: 'Searches documents.' fixtures/agent_transcripts.log shows agents retrying the identical malformed query after the error, and separately citing document content that was actually cut off mid-response by the context window with no indication it had been truncated.",
+      "rubric": [
+        {"criterion": "Capped/truncated the returned payload to the minimum needed to answer the intention, with an explicit truncation marker when content is cut, rather than silent cutoff", "grader": "judge"},
+        {"criterion": "Rewrote the error to state what was wrong AND what to do next (e.g. required query format or an example) instead of the bare 'Error: invalid input'", "grader": "judge"},
+        {"criterion": "Rewrote the description beyond the copied backend docstring, adding when to use / when not to use, front-loaded with the words a task description would contain", "grader": "judge"},
+        {"criterion": "Did not leave the raw uncapped payload return in place while only touching the error text", "grader": "judge"},
+        {"criterion": "The literal old bare error string is no longer returned unmodified", "grader": "command", "command": "! grep -n \"'Error: invalid input'\" tools/search.py"}
+      ]
+    },
+    {
+      "id": "destructive-op-guardrail",
+      "task": "Add a delete_records tool to our data-pipeline MCP server so agents can clean up stale rows. Design it so a model can't accidentally wipe production data, and so it stays safe whether the calling model is a frontier model or a cheaper one.",
+      "fixture": "There is currently no delete_records tool. Sibling tools in tools/pipeline.py (list_records, get_record) are read-only and already follow house schema conventions (record_id naming, enums for status). The team was previously burned: a destructive archive_dataset tool was validated only by manual testing with the strongest available model, and after shipping, a cheaper model in production called it with a wildcard filter that deleted an entire dataset.",
+      "rubric": [
+        {"criterion": "Added a dry-run mode or an explicit confirmation parameter that must be set before any actual deletion occurs", "grader": "judge"},
+        {"criterion": "Description explicitly states this is a mutating/destructive operation, distinct from the sibling read-only tools", "grader": "judge"},
+        {"criterion": "Schema constrains the blast radius (bounded/required filters, ids, or limits) rather than accepting an open-ended wildcard filter string", "grader": "judge"},
+        {"criterion": "Explicitly called for or performed testing with a weaker/cheaper model, not only the strongest model, echoing the archive_dataset incident", "grader": "judge"},
+        {"criterion": "New tool includes a dry-run or confirmation parameter in its implementation", "grader": "command", "command": "grep -Eq 'dry_run|confirm' tools/pipeline.py"}
+      ]
+    }
+  ]
+}

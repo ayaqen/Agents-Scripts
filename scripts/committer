@@ -42,6 +42,7 @@ fi
 "$script_dir/validate-docs"
 "$script_dir/validate-agents"
 "$script_dir/validate-plugin"
+"$script_dir/validate-evals"
 "$script_dir/validate-links"
 
 # Committing the tooling itself requires the tooling's tests to pass.

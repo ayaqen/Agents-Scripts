@@ -1,0 +1,39 @@
+{
+  "skill": "model-tiering",
+  "scenarios": [
+    {
+      "id": "delegate-mechanical-rename",
+      "task": "Rename the function computeTotal to calculateOrderTotal across the codebase, updating all call sites and imports, then verify nothing broke. Decide how much of this to delegate versus do yourself.",
+      "fixture": "A TypeScript project where computeTotal is defined in src/pricing/totals.ts and called from 14 other files across src/. A full test suite exists at `npm test`. No work has begun yet.",
+      "rubric": [
+        {"criterion": "Wrote a complete spec before delegating: exact symbol, defining file, expected call-site scope, and the verification command (e.g. npm test and/or grep for the old name)", "grader": "judge"},
+        {"criterion": "Delegated the mechanical rename-and-call-site sweep to a cheaper tier rather than performing all of it at frontier tier itself", "grader": "judge"},
+        {"criterion": "Kept the delegated task purely mechanical, retaining any judgment calls about the rename's correctness for the orchestrator", "grader": "judge"},
+        {"criterion": "Verified worker output directly, by running the test command and/or checking for leftover old-name references, instead of trusting the worker's claim of completion (Pitfall: skipping review because output looks done)", "grader": "judge"},
+        {"criterion": "Did not delegate the spec-writing itself to the worker (Pitfall)", "grader": "judge"}
+      ]
+    },
+    {
+      "id": "parallel-workers-file-ownership",
+      "task": "Update the docstrings and comments in three independent modules (auth, billing, reports) to match the new style guide. Use multiple workers to move faster, and make sure the result is correct when they're done.",
+      "fixture": "Three independent modules, src/auth/, src/billing/, src/reports/, each self-contained with no files shared between them. STYLE_GUIDE.md describes the desired docstring format. No work has started yet.",
+      "rubric": [
+        {"criterion": "Partitioned file ownership so each worker was scoped to exactly one module's files, with no two workers writing the same file (Pitfall to avoid: overlapping file ownership producing conflicting edits)", "grader": "judge"},
+        {"criterion": "Gave each worker the relevant style-guide content and file paths directly in its spec rather than the whole session's context (Pitfall: sending each worker the entire session context)", "grader": "judge"},
+        {"criterion": "Verified the resulting diffs across all three modules directly rather than accepting each worker's 'done' claim at face value", "grader": "judge"},
+        {"criterion": "Specified done-criteria or a verification check for each worker's task up front", "grader": "judge"}
+      ]
+    },
+    {
+      "id": "root-cause-vs-delegated-fix",
+      "task": "Users report that the checkout flow silently drops the discount code about half the time. Figure out why and fix it, using delegation where it actually speeds things up.",
+      "fixture": "A repo where the root cause is not yet known; it could be a race condition, a caching bug, or a frontend state bug. The eventual cause is a stale React state closure in src/checkout/DiscountForm.tsx capturing an old code value. No investigation has occurred yet.",
+      "rubric": [
+        {"criterion": "Kept the root-cause diagnosis on the orchestrator itself rather than delegating the exploration/diagnosis to a cheap-tier worker (Pitfall: delegating exploration or diagnosis to cheap models, which satisfice and report false negatives)", "grader": "judge"},
+        {"criterion": "Delegated only well-specified, mechanical work once the cause and fix location were already identified, not the ambiguous investigation itself", "grader": "judge"},
+        {"criterion": "If a worker was used for the fix, wrote a complete spec with the exact file/change and a verification command rather than an open-ended 'find and fix it' prompt", "grader": "judge"},
+        {"criterion": "Verified the fix by reproducing the original symptom and showing it resolved, rather than accepting an unverified claim that it was fixed", "grader": "judge"}
+      ]
+    }
+  ]
+}

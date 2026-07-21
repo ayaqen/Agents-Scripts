@@ -1,0 +1,41 @@
+{
+  "skill": "prompt-triage",
+  "scenarios": [
+    {
+      "id": "truncated-context-diagnosis",
+      "task": "An internal support-ticket summarizer sometimes omits the customer's actual request from its summary, even though the retrieved ticket text clearly contains it. Diagnose why the omission happens and fix the root cause — don't just reword the summarization instructions.",
+      "fixture": "A Python agent in agent/summarize.py builds a prompt by concatenating a fixed system prompt with retrieved ticket text, then truncates the assembled string to a fixed 800-character limit via a plain slice before sending it to the model. Ticket #4821's relevant detail (the customer's actual request) sits at character 950, past the truncation cutoff, so the model was never shown it. Ten sample raw tickets live in fixtures/tickets/.",
+      "rubric": [
+        {"criterion": "Reconstructed the final rendered prompt (post-truncation), not just the template, and noticed the customer's request text was missing from what the model actually received", "grader": "judge"},
+        {"criterion": "Identified context-assembly truncation as the cause rather than treating it as a prompt-wording problem", "grader": "judge"},
+        {"criterion": "Checked what the model actually saw before proposing any fix, rather than assuming the model itself was at fault", "grader": "judge"},
+        {"criterion": "Applied a structural fix to the assembly/truncation logic rather than only appending emphatic instructions to the prompt", "grader": "judge"},
+        {"criterion": "Naive fixed-length slice truncation no longer present unmodified in the assembly code", "grader": "command", "command": "! grep -n '\\[:800\\]' agent/summarize.py"}
+      ]
+    },
+    {
+      "id": "flaky-json-output-n1",
+      "task": "The invoice-extraction agent's output was approved after one manual test run, but production shows the JSON schema check failing intermittently. Diagnose whether this is a real bug or normal model variance, and fix it appropriately.",
+      "fixture": "agent/extract.py sends a fixed prompt asking the model to 'return JSON' for invoice text, with no schema-constrained output and temperature=0.9. scripts/replay.py resends the same fixed sample invoice N times and prints each raw response. Logs in fixtures/logs/ show roughly 1 in 4 responses is malformed (trailing commentary before the JSON, or unquoted keys).",
+      "rubric": [
+        {"criterion": "Ran the same fixed input multiple times to characterize the failure rate before concluding a cause, rather than judging from a single run", "grader": "judge"},
+        {"criterion": "Correctly classified this as a distribution problem ('works sometimes') and quantified it, instead of treating one bad output as proof of a broken prompt", "grader": "judge"},
+        {"criterion": "Applied a structural fix — schema-constrained/structured output and/or a lower temperature — rather than only adding 'please return valid JSON' wording", "grader": "judge"},
+        {"criterion": "Verified the fix by rerunning the same fixed inputs multiple times again, not by eyeballing one new response", "grader": "judge"},
+        {"criterion": "Extraction call now requests structured/schema-constrained output or reduces sampling temperature", "grader": "command", "command": "grep -Eq 'response_format|json_schema|temperature *= *0(\\.[0-3])?[^0-9]' agent/extract.py"}
+      ]
+    },
+    {
+      "id": "regressed-prompt-bisect",
+      "task": "Last week's prompt update to the FAQ-answering agent made it start refusing perfectly answerable questions. Find which change caused the regression and fix it without introducing a new instruction pile-up on top.",
+      "fixture": "prompts/faq_v12.txt (known-good) and prompts/faq_v13.txt (current) differ by three lines appended in one commit to address an unrelated verbosity complaint. One added line reads 'If you are not 100% certain, decline to answer,' which contradicts the pre-existing line 'Always attempt an answer using the provided context.' fixtures/refused_questions.txt lists five real questions the agent now wrongly declines.",
+      "rubric": [
+        {"criterion": "Diffed the rendered prompts (v12 vs v13) rather than guessing, and located the specific added line responsible for the regression", "grader": "judge"},
+        {"criterion": "Identified the contradiction between the new 'decline to answer' line and the pre-existing 'always attempt an answer' line as the actual mechanism, not just 'the prompt changed'", "grader": "judge"},
+        {"criterion": "Fixed the contradiction by rewriting the relevant instructions cleanly rather than appending a fourth line to countermand the third", "grader": "judge"},
+        {"criterion": "Verified the fix against multiple previously-refused questions from fixtures/refused_questions.txt, not a single example", "grader": "judge"},
+        {"criterion": "Current prompt no longer contains both contradictory lines simultaneously", "grader": "command", "command": "! (grep -q 'decline to answer' prompts/faq_v13.txt && grep -q 'Always attempt an answer' prompts/faq_v13.txt)"}
+      ]
+    }
+  ]
+}

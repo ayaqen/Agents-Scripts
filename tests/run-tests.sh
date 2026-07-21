@@ -325,6 +325,86 @@ expect_fail "malformed plugin JSON fails" "$repo_root/scripts/validate-plugin" "
 
 expect_pass "no .claude-plugin dir passes" "$repo_root/scripts/validate-plugin" "$tmp/good"
 
+# --- validate-evals ---
+
+eval_file() {
+  # eval_file <root> <skill> — minimal valid scenarios.json
+  mkdir -p "$1/evals/$2"
+  cat > "$1/evals/$2/scenarios.json" <<EOF
+{
+  "skill": "$2",
+  "scenarios": [
+    {
+      "id": "first-case",
+      "task": "Do the thing carefully and prove it worked with a command at the end.",
+      "fixture": "A small project with one relevant module.",
+      "rubric": [
+        {"criterion": "Did step one before step two", "grader": "judge"},
+        {"criterion": "Did not do the forbidden thing", "grader": "judge"},
+        {"criterion": "Left no scratch file", "grader": "command", "command": "true"}
+      ]
+    },
+    {
+      "id": "second-case",
+      "task": "Handle the trickier variant of the thing and report the outcome honestly.",
+      "fixture": "Same project with the edge condition active.",
+      "rubric": [
+        {"criterion": "Named the edge condition explicitly", "grader": "judge"},
+        {"criterion": "Verified the result", "grader": "judge"},
+        {"criterion": "Reported limitations", "grader": "judge"}
+      ]
+    }
+  ]
+}
+EOF
+}
+
+fixture="$tmp/evals-good"
+write_skill "$fixture" "good-skill" "good-skill" '"A valid description."'
+eval_file "$fixture" "good-skill"
+expect_pass "valid evals pass" "$repo_root/scripts/validate-evals" "$fixture"
+
+fixture="$tmp/evals-missing"
+write_skill "$fixture" "good-skill" "good-skill" '"A valid description."'
+expect_fail "skill without evals fails" "$repo_root/scripts/validate-evals" "$fixture"
+
+fixture="$tmp/evals-orphan"
+write_skill "$fixture" "good-skill" "good-skill" '"A valid description."'
+eval_file "$fixture" "good-skill"
+eval_file "$fixture" "ghost-skill"
+expect_fail "orphan eval dir fails" "$repo_root/scripts/validate-evals" "$fixture"
+
+fixture="$tmp/evals-badgrader"
+write_skill "$fixture" "good-skill" "good-skill" '"A valid description."'
+eval_file "$fixture" "good-skill"
+python3 - "$fixture/evals/good-skill/scenarios.json" <<'PY'
+import json, sys
+p = sys.argv[1]
+d = json.load(open(p))
+d["scenarios"][0]["rubric"][0]["grader"] = "vibes"
+json.dump(d, open(p, "w"))
+PY
+expect_fail "unknown grader fails" "$repo_root/scripts/validate-evals" "$fixture"
+
+fixture="$tmp/evals-dupid"
+write_skill "$fixture" "good-skill" "good-skill" '"A valid description."'
+eval_file "$fixture" "good-skill"
+python3 - "$fixture/evals/good-skill/scenarios.json" <<'PY'
+import json, sys
+p = sys.argv[1]
+d = json.load(open(p))
+d["scenarios"][1]["id"] = d["scenarios"][0]["id"]
+json.dump(d, open(p, "w"))
+PY
+expect_fail "duplicate scenario id fails" "$repo_root/scripts/validate-evals" "$fixture"
+
+# --- eval-skills (offline modes only; real runs need an agent CLI) ---
+
+expect_pass "eval-skills --list works offline" "$repo_root/scripts/eval-skills" --list
+expect_pass "eval-skills --dry-run works offline" "$repo_root/scripts/eval-skills" --dry-run
+expect_fail "eval-skills run fails cleanly without agent CLI" \
+  env EVAL_AGENT_CMD="nonexistent-agent-cmd-xyz" "$repo_root/scripts/eval-skills"
+
 # --- sync-skills ---
 
 fixture="$tmp/sync"
@@ -345,6 +425,7 @@ expect_pass "this repo's skills validate" "$repo_root/scripts/validate-skills"
 expect_pass "this repo's docs validate" "$repo_root/scripts/validate-docs"
 expect_pass "this repo's agents validate" "$repo_root/scripts/validate-agents"
 expect_pass "this repo's plugin packaging validates" "$repo_root/scripts/validate-plugin"
+expect_pass "this repo's evals validate" "$repo_root/scripts/validate-evals"
 expect_pass "this repo's links resolve" "$repo_root/scripts/validate-links"
 
 echo

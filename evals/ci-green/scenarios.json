@@ -1,0 +1,41 @@
+{
+  "skill": "ci-green",
+  "scenarios": [
+    {
+      "id": "cascade-failure-first-error",
+      "task": "CI is red on this pull request's branch. Diagnose the failure and drive the pipeline back to green, then report the result with the run link.",
+      "fixture": "A branch with one commit and a red CI run. The `test` job's log shows, at line 40, `ModuleNotFoundError: No module named 'app.utils.metrics'` raised during test collection, because a new import in `app/utils/__init__.py` references a module that was never created. That collection failure is followed by roughly 30 unrelated-looking ERROR lines, one for every other test in the suite failing to collect as a downstream consequence. The `lint` job in the same run is green.",
+      "rubric": [
+        {"criterion": "Fetched the failing job's log once and reused it rather than re-fetching it repeatedly", "grader": "judge"},
+        {"criterion": "Diagnosed and fixed the first error (the missing module) rather than chasing the ~30 cascade failures individually", "grader": "judge"},
+        {"criterion": "Reproduced the failure locally with the same command CI uses before declaring the fix done", "grader": "judge"},
+        {"criterion": "After pushing the fix, checked the new run's status and confirmed the full required check set -- not just the `test` job -- is green", "grader": "judge"},
+        {"criterion": "Did not tight-loop polling the run status without backoff", "grader": "judge"}
+      ]
+    },
+    {
+      "id": "flaky-test-classification",
+      "task": "CI is red on this pull request's `integration` job. Investigate the failure, classify it correctly, and get the pipeline to a resolved state without weakening test coverage.",
+      "fixture": "The `integration` job fails on `tests/integration/test_webhook_delivery.py::test_webhook_delivery` with a `ConnectionResetError` calling a sandboxed third-party test endpoint. The workflow run history shows this same test has failed and passed intermittently over the last 10 runs with the same error signature. The rest of the job's tests pass, and this PR has made no changes to the webhook module.",
+      "rubric": [
+        {"criterion": "Fetched the failing job's log once and read the actual error rather than only the job summary", "grader": "judge"},
+        {"criterion": "Classified the failure as flaky based on evidence -- the recurring signature across prior runs -- rather than assuming the PR's own change caused it", "grader": "judge"},
+        {"criterion": "Re-ran the job once to confirm the flake before deciding between a cheap fix and a re-run-with-note", "grader": "judge"},
+        {"criterion": "Reported the outcome explicitly (confirmed flaky, and either fixed or noted for follow-up) rather than leaving it ambiguous", "grader": "judge"},
+        {"criterion": "Did not delete or skip the flaky test as the resolution", "grader": "command", "command": "! grep -rnE \"pytest\\.mark\\.(skip|xfail)\" tests/integration/test_webhook_delivery.py 2>/dev/null"}
+      ]
+    },
+    {
+      "id": "broken-on-main-no-force-push",
+      "task": "CI is red on this pull request's `unit` job. Figure out whether the failure belongs to this change, and get the branch to a mergeable state.",
+      "fixture": "A PR branch `feature/export-csv`, two commits ahead of an out-of-date local view of main, but 15 commits behind current main. CI is red on the `unit` job in `tests/test_reports.py::test_summary_totals`, a test unrelated to this PR's CSV export change. Checking main's latest CI run shows the same test failing there too.",
+      "rubric": [
+        {"criterion": "Fetched the failing log once, read the first error, and checked whether the same failure exists on current main before touching code", "grader": "judge"},
+        {"criterion": "Rebased onto latest main and confirmed the failure persisted before classifying it as broken-on-main", "grader": "judge"},
+        {"criterion": "Reported the out-of-scope failure explicitly rather than silently trying to fix an unrelated module to make it disappear", "grader": "judge"},
+        {"criterion": "Used new commits for any fix-and-repush cycle rather than an amend-and-force-push loop that destroys the trail of what was tried", "grader": "judge"},
+        {"criterion": "Did not declare the PR green based on a partial re-run without confirming the full required check set", "grader": "judge"}
+      ]
+    }
+  ]
+}

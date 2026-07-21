@@ -1,0 +1,41 @@
+{
+  "skill": "safe-refactor",
+  "scenarios": [
+    {
+      "id": "extract-duplicate-email-validation",
+      "task": "order.py, signup.py, and newsletter.py each contain a near-duplicate block of email-validation logic. Extract it into a single shared function without changing any module's observable behavior.",
+      "fixture": "A Python repo where the three modules have near-identical (not byte-identical — newsletter.py's regex uses a different flag) email-validation blocks. tests/ covers the order.py and signup.py validation paths but has no test for newsletter.py's validation. The full suite currently passes.",
+      "rubric": [
+        {"criterion": "Ran the tests covering the target code and recorded the baseline result before changing anything", "grader": "judge"},
+        {"criterion": "Added a characterization test for newsletter.py's validation (the currently-uncovered path) as its own commit before refactoring that code", "grader": "judge"},
+        {"criterion": "Performed the extraction in small, independently-green steps rather than rewriting all three call sites in one shot", "grader": "judge"},
+        {"criterion": "Noticed the regex-flag discrepancy in newsletter.py and did NOT silently fold that behavior change into the refactor commit", "grader": "judge"},
+        {"criterion": "Deleted the old duplicated validation blocks from all three modules rather than leaving them alongside the new shared function", "grader": "judge"}
+      ]
+    },
+    {
+      "id": "rename-usercontext-across-repo",
+      "task": "Rename the `UserCtx` class to `UserContext` throughout the codebase; it's referenced in roughly 40 files across the service layer, tests, and config loaders.",
+      "fixture": "A large repo where `UserCtx` is used in service-layer code, tests, and two config-loading files. The test suite is green at baseline. scripts/codemod.sh is available and known to handle simple identifier renames safely.",
+      "rubric": [
+        {"criterion": "Ran the tests before starting to confirm a green baseline", "grader": "judge"},
+        {"criterion": "Used the available codemod tooling rather than a single hand-rolled, repo-wide search-and-replace commit", "grader": "judge"},
+        {"criterion": "Split the rename into reviewable, independently-verified steps or commits rather than one giant commit touching all ~40 files at once", "grader": "judge"},
+        {"criterion": "Ran the tests after each step of the rename, not only once at the very end", "grader": "judge"},
+        {"criterion": "Did not fold any unrelated fix or behavior change into the rename commits", "grader": "judge"}
+      ]
+    },
+    {
+      "id": "extract-pricing-thin-coverage",
+      "task": "Extract the pricing calculation embedded inside checkout() into its own calculate_price() function. The module is fully typed and passes mypy cleanly, but test coverage of pricing edge cases is thin.",
+      "fixture": "checkout.py is fully mypy-typed and the type-check passes cleanly. tests/test_checkout.py only covers the happy path (one item, no discount); there are no tests for the zero-quantity branch or the bulk-discount branch inside the pricing logic.",
+      "rubric": [
+        {"criterion": "Did not treat a clean mypy pass as sufficient evidence of safety; added characterization tests for the untested zero-quantity and discount branches before extracting", "grader": "judge"},
+        {"criterion": "Ran the expanded test suite as the actual safety net before restructuring the code", "grader": "judge"},
+        {"criterion": "Performed the extraction as a mechanical move that preserved the exact existing conditionals, rather than simplifying or improving the logic in the same change", "grader": "judge"},
+        {"criterion": "Ran the tests after the extraction and confirmed the suite was still green", "grader": "judge"},
+        {"criterion": "Committed the characterization tests separately from the extraction commit", "grader": "judge"}
+      ]
+    }
+  ]
+}

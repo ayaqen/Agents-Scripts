@@ -1,0 +1,39 @@
+{
+  "skill": "session-handoff",
+  "scenarios": [
+    {
+      "id": "mid-refactor-context-exhausted",
+      "task": "You're partway through refactoring the auth module to use dependency injection and your context is nearly gone. Write a handoff note so a fresh session can continue with zero prior context.",
+      "fixture": "A repo mid-refactor: 3 of 7 files converted to constructor injection and passing their tests; the remaining 4 files still use the old singleton pattern; an attempted approach (injecting via a global registry) was tried and abandoned because it broke circular-import ordering; 2 files have uncommitted changes and one experiment is stashed.",
+      "rubric": [
+        {"criterion": "Wrote the note to a predictable location (e.g. HANDOFF.md at the repo root) rather than leaving it only in the conversation", "grader": "judge"},
+        {"criterion": "Recorded the abandoned global-registry approach and why it failed, not just the completed work (Landmines: dead ends explored)", "grader": "judge"},
+        {"criterion": "Named the single concrete next command or file to resume with, not a vague 'continue the refactor' (Pitfall: vague next steps)", "grader": "judge"},
+        {"criterion": "Distinguished DONE-and-verified work, with the command that proved it, from IN-PROGRESS or assumed work", "grader": "judge"},
+        {"criterion": "Described the uncommitted and stashed state explicitly rather than leaving mystery modifications for the next session to discover", "grader": "judge"}
+      ]
+    },
+    {
+      "id": "flaky-test-handoff",
+      "task": "You've been debugging an intermittent test failure and are out of time this session. Write a handoff so whoever picks this up next doesn't re-derive what you already ruled out.",
+      "fixture": "tests/test_sync.py::test_concurrent_write fails about 1 run in 8. A race in lock acquisition was ruled out (proved thread-safe via trace logging) and clock skew was ruled out; a missing flush before a read is suspected but not confirmed. No code changes have been made yet.",
+      "rubric": [
+        {"criterion": "Recorded the ruled-out hypotheses (lock race, clock skew) and how each was disproved, not just the current suspicion", "grader": "judge"},
+        {"criterion": "Marked the missing-flush theory clearly as unconfirmed rather than blurring it with the verified findings (Pitfall: leaving verified-vs-assumed ambiguous)", "grader": "judge"},
+        {"criterion": "Named a single concrete next step, such as a specific code location or experiment to run, rather than 'keep investigating'", "grader": "judge"},
+        {"criterion": "Included the verification command that would prove the fix once the cause is found", "grader": "judge"}
+      ]
+    },
+    {
+      "id": "handoff-to-teammate",
+      "task": "You finished the backend API changes but haven't wired up the frontend consumer yet, and you're handing this off to a human teammate at end of day. Write the handoff note.",
+      "fixture": "Backend endpoint POST /api/v2/reports is implemented and covered by passing tests (`pytest tests/test_reports_api.py`). Frontend code in src/reports/ still calls the deprecated /api/v1/reports endpoint. Branch feature/reports-v2 is pushed with all changes committed; nothing is stashed or uncommitted.",
+      "rubric": [
+        {"criterion": "Structured the note as current state (goal, current state, next step, landmines, verification) rather than a chronological narrative of actions taken (Pitfall: writing what you did instead of what's true now)", "grader": "judge"},
+        {"criterion": "Stated what is DONE and verified along with the exact proving command", "grader": "judge"},
+        {"criterion": "Named the single concrete next step, e.g. the specific file in src/reports/ to update and which endpoint to point it at", "grader": "judge"},
+        {"criterion": "Confirmed the clean repo state (branch pushed, nothing uncommitted) so the teammate isn't surprised by hidden changes", "grader": "judge"}
+      ]
+    }
+  ]
+}

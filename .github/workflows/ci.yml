@@ -62,6 +62,9 @@ jobs:
       - name: Validate plugin packaging
         run: ./scripts/validate-plugin
 
+      - name: Validate evals
+        run: ./scripts/validate-evals
+
       - name: Validate links
         run: ./scripts/validate-links
 

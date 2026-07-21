@@ -1,0 +1,40 @@
+{
+  "skill": "dependency-vet",
+  "scenarios": [
+    {
+      "id": "trivial-utility-dependency",
+      "task": "The project needs to deep-clone a plain JSON-serializable config object in exactly one place. Someone suggested adding the 'klona' npm package for it. Decide whether to add the dependency or write the code by hand, and act on your decision.",
+      "fixture": "A Node.js project (package.json present) where config.js needs a deep clone of a plain object used only for a default-settings snapshot. No circular references, Dates, or Maps are involved. 'klona' is not yet in package.json or the lockfile.",
+      "rubric": [
+        {"criterion": "Estimated or attempted the no-dependency alternative (e.g. structuredClone or JSON.parse(JSON.stringify(...))) before evaluating the package", "grader": "judge"},
+        {"criterion": "If choosing to add the dependency anyway, justified it against the estimated hand-rolled alternative rather than skipping the comparison", "grader": "judge"},
+        {"criterion": "Checked the package's last release/commit date and maintainer count via a live lookup, not from memory", "grader": "judge"},
+        {"criterion": "Checked transitive dependency count or install size before deciding", "grader": "judge"},
+        {"criterion": "Did not treat README polish or popularity as a substitute for a security/health check (Pitfall: vetting the README instead of the code)", "grader": "judge"}
+      ]
+    },
+    {
+      "id": "pr-adds-suspicious-package",
+      "task": "Review this open pull request that adds a new runtime dependency and give a vetting verdict: approve, request changes, or reject, with reasons for the decision.",
+      "fixture": "A PR diff adds \"reqeusts-promise\": \"^2.0.1\" to package.json (transposed letters versus the well-known 'request-promise' family), and the lockfile entry shows the package ships a postinstall script. The PR description only says 'needed this for HTTP calls'.",
+      "rubric": [
+        {"criterion": "Flagged the package name as a likely typosquat of an established package rather than assuming it is the canonical one", "grader": "judge"},
+        {"criterion": "Called out the postinstall script as something that needs to be read, not just noted in passing", "grader": "judge"},
+        {"criterion": "Checked advisories/CVEs for the exact pinned version via a live source, not recalled from training-data memory", "grader": "judge"},
+        {"criterion": "Checked license compatibility with the project before approving", "grader": "judge"},
+        {"criterion": "Did not approve based on the PR description's stated purpose alone (Pitfall: vetting the README/description instead of the code)", "grader": "judge"}
+      ]
+    },
+    {
+      "id": "dev-dependency-build-tool",
+      "task": "A teammate wants to add a new dev-only dependency (a build-time codegen CLI) to devDependencies. Vet it with the same rigor as a runtime dependency and give a recommendation.",
+      "fixture": "A repo with package.json; the proposed package is a code generator invoked during `npm run build` via a `prebuild` script, running with the same environment and CI credentials as the build. It has moderate weekly downloads but a single contributor and no commits in 14 months.",
+      "rubric": [
+        {"criterion": "Treated the dev-dependency with the same rigor as a runtime dependency rather than waving it through as 'just dev-only' (Pitfall: skipping the check for dev-dependencies)", "grader": "judge"},
+        {"criterion": "Noted that build-time code runs with CI credentials/environment access as part of the risk assessment", "grader": "judge"},
+        {"criterion": "Checked last-commit/last-release recency and flagged the single-maintainer risk via a fresh read", "grader": "judge"},
+        {"criterion": "Considered pinning conservatively or wrapping the CLI invocation rather than adopting it unpinned", "grader": "judge"}
+      ]
+    }
+  ]
+}

@@ -9,6 +9,7 @@ repo_root=$(git rev-parse --show-toplevel)
 "$repo_root/scripts/validate-docs"
 "$repo_root/scripts/validate-agents"
 "$repo_root/scripts/validate-plugin"
+"$repo_root/scripts/validate-evals"
 "$repo_root/scripts/validate-links"
 
 # Syntax-check any staged shell scripts.

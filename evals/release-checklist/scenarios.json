@@ -1,0 +1,43 @@
+{
+  "skill": "release-checklist",
+  "scenarios": [
+    {
+      "id": "npm-publish-verify-fresh-read",
+      "task": "Cut and publish release v2.3.0 of this npm package from the current release branch. The CHANGELOG has an Unreleased section with entries ready to ship. Complete preflight, tag, publish, and verify it is actually live before reporting done.",
+      "fixture": "A node package repo on branch `release/2.3.0`, clean working tree. `package.json` is currently at version 2.2.9. `CHANGELOG.md` has a '## Unreleased' section listing three fix/feature bullets. The latest CI run on the branch tip is green. `git tag -l` shows prior tags formatted as `v2.2.9`, `v2.2.8`. The repo has `.github/workflows/publish.yml`, which publishes to npm on tag push.",
+      "rubric": [
+        {"criterion": "Confirmed CI was green on the exact commit being tagged, not an earlier or different commit", "grader": "judge"},
+        {"criterion": "Bumped the version in package.json and moved the Unreleased changelog entries under a dated v2.3.0 heading matching house style, rather than writing a fresh changelog from git log", "grader": "judge"},
+        {"criterion": "Used the project's CI release workflow to publish rather than running `npm publish` manually, since a documented official channel exists", "grader": "judge"},
+        {"criterion": "Verified the published package with a fresh registry read (e.g. `npm view <pkg>@2.3.0`) showing the correct version and publish time, not by trusting the publish command's exit code", "grader": "judge"},
+        {"criterion": "Did not report the release as done based on the publish command succeeding alone", "grader": "judge"},
+        {"criterion": "CHANGELOG.md carries a dated heading for the shipped version", "grader": "command", "command": "grep -qE \"^## \\[?2\\.3\\.0\\]?\" CHANGELOG.md"}
+      ]
+    },
+    {
+      "id": "last-second-edit-before-tag",
+      "task": "Cut and publish release 1.9.0 of this Python package from the release branch. Follow the project's release process end to end, including verifying that it actually published.",
+      "fixture": "A Python package repo, branch `release/1.9.0`, clean working tree. CI last ran and went green on commit `abc1234`. Since then, one more commit `def5678` was pushed containing a one-line version-string edit in `pyproject.toml` (bumping `1.9.0rc1` to `1.9.0`); no CI run exists yet for `def5678`, which is the current branch tip. `git tag -l` shows precedent tags formatted `1.8.0`, `1.7.2` (no `v` prefix). CHANGELOG.md's Unreleased section has two entries.",
+      "rubric": [
+        {"criterion": "Noticed the branch tip had no CI run of its own and either triggered/waited for CI on that exact commit or declined to tag until it existed, rather than treating the earlier green run on abc1234 as sufficient proof", "grader": "judge"},
+        {"criterion": "Matched the tag naming precedent found via `git tag -l` (no v prefix) rather than inventing a different format", "grader": "judge"},
+        {"criterion": "Moved the Unreleased changelog entries under a dated 1.9.0 heading before committing", "grader": "judge"},
+        {"criterion": "Verified publication with a fresh registry/GitHub read after publishing, not by trusting the publish command's exit code", "grader": "judge"},
+        {"criterion": "Did not tag or publish the untested commit def5678 while treating CI on its ancestor as coverage for it", "grader": "judge"}
+      ]
+    },
+    {
+      "id": "failed-publish-partial-state",
+      "task": "Finish releasing v0.8.0 of this Rust crate. A tag was already pushed and a publish was attempted, but you need to determine what actually completed and get the release into a good end state, reporting exactly what did and didn't ship.",
+      "fixture": "A Rust crate repo on branch `release/0.8.0`, clean tree, CI green on tip commit `9f1c2ab`. Cargo.toml is already bumped to 0.8.0 and CHANGELOG.md's Unreleased section is already moved to a dated '## [0.8.0] - 2026-07-21' heading and committed. The tag `v0.8.0` was pushed, but the crates.io publish step in the CI release workflow failed partway through, visible in the workflow run's logs. The crate is not actually live on crates.io yet, and no GitHub Release object was ever created.",
+      "rubric": [
+        {"criterion": "Checked the actual state (crates.io, GitHub Releases, the CI run) with fresh reads rather than assuming the pushed tag meant the release had succeeded", "grader": "judge"},
+        {"criterion": "Identified from the CI logs and a direct crates.io query that the crate is not live despite the tag existing", "grader": "judge"},
+        {"criterion": "Reported precisely which steps completed (tag, changelog, version bump) and which did not (publish, GitHub Release), rather than a blanket 'done' or 'failed'", "grader": "judge"},
+        {"criterion": "Retried the publish through the official CI release workflow rather than inventing an ad hoc manual publish path", "grader": "judge"},
+        {"criterion": "Verified the retried publish with a fresh crates.io read (version and timestamp) before declaring success", "grader": "judge"},
+        {"criterion": "Did not report the release as shipped merely because the tag was present on the remote", "grader": "judge"}
+      ]
+    }
+  ]
+}

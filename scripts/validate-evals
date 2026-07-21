@@ -1,0 +1,164 @@
+#!/usr/bin/env python3
+"""Validate evals/<skill>/scenarios.json against the eval schema.
+
+Every skill must ship eval scenarios — an uneavaluated skill is an
+unverified claim. This validator is the cheap, offline half of the eval
+story (structure); scripts/eval-skills is the on-demand semantic half.
+
+Schema per file:
+  {
+    "skill": "<name>",            # must equal the directory name
+    "scenarios": [                 # 2-5 scenarios
+      {
+        "id": "kebab-case",       # unique within the file
+        "task": "...",            # >= 40 chars, the prompt given to an agent
+        "fixture": "...",         # starting-state description, non-empty
+        "rubric": [                # 3-8 items, at least one judge item
+          {"criterion": "...", "grader": "judge"},
+          {"criterion": "...", "grader": "command", "command": "exit-0-on-pass"}
+        ]
+      }
+    ]
+  }
+
+Usage: validate-evals [repo-root]
+Exit code 0 when all eval files are valid, 1 otherwise.
+"""
+
+import json
+import os
+import re
+import sys
+
+ID_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+GRADERS = ("judge", "command")
+MIN_SCENARIOS, MAX_SCENARIOS = 2, 5
+MIN_RUBRIC, MAX_RUBRIC = 3, 8
+MIN_TASK_LEN = 40
+
+
+def check_file(path, rel, skill, errors):
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+    except ValueError as e:
+        errors.append("%s: invalid JSON: %s" % (rel, e))
+        return
+    if not isinstance(data, dict):
+        errors.append("%s: top level must be an object" % rel)
+        return
+    if data.get("skill") != skill:
+        errors.append(
+            "%s: `skill` must equal directory name `%s`" % (rel, skill)
+        )
+    scenarios = data.get("scenarios")
+    if not isinstance(scenarios, list) or not (
+        MIN_SCENARIOS <= len(scenarios) <= MAX_SCENARIOS
+    ):
+        errors.append(
+            "%s: `scenarios` must be a list of %d-%d items"
+            % (rel, MIN_SCENARIOS, MAX_SCENARIOS)
+        )
+        return
+    seen_ids = set()
+    for i, sc in enumerate(scenarios):
+        where = "%s: scenarios[%d]" % (rel, i)
+        if not isinstance(sc, dict):
+            errors.append("%s: must be an object" % where)
+            continue
+        sid = sc.get("id", "")
+        if not isinstance(sid, str) or not ID_RE.match(sid):
+            errors.append("%s: `id` must be kebab-case" % where)
+        elif sid in seen_ids:
+            errors.append("%s: duplicate id `%s`" % (where, sid))
+        else:
+            seen_ids.add(sid)
+        task = sc.get("task", "")
+        if not isinstance(task, str) or len(task.strip()) < MIN_TASK_LEN:
+            errors.append(
+                "%s: `task` must be a string of >= %d chars" % (where, MIN_TASK_LEN)
+            )
+        fixture = sc.get("fixture", "")
+        if not isinstance(fixture, str) or not fixture.strip():
+            errors.append("%s: `fixture` must be a non-empty string" % where)
+        rubric = sc.get("rubric")
+        if not isinstance(rubric, list) or not (
+            MIN_RUBRIC <= len(rubric) <= MAX_RUBRIC
+        ):
+            errors.append(
+                "%s: `rubric` must be a list of %d-%d items"
+                % (where, MIN_RUBRIC, MAX_RUBRIC)
+            )
+            continue
+        judges = 0
+        for j, item in enumerate(rubric):
+            iw = "%s.rubric[%d]" % (where, j)
+            if not isinstance(item, dict):
+                errors.append("%s: must be an object" % iw)
+                continue
+            crit = item.get("criterion", "")
+            if not isinstance(crit, str) or not crit.strip():
+                errors.append("%s: `criterion` must be non-empty" % iw)
+            grader = item.get("grader")
+            if grader not in GRADERS:
+                errors.append("%s: `grader` must be one of %s" % (iw, "/".join(GRADERS)))
+                continue
+            if grader == "judge":
+                judges += 1
+                if "command" in item:
+                    errors.append("%s: judge items must not carry `command`" % iw)
+            else:
+                cmd = item.get("command", "")
+                if not isinstance(cmd, str) or not cmd.strip():
+                    errors.append("%s: command items require non-empty `command`" % iw)
+        if judges == 0:
+            errors.append("%s: rubric needs at least one judge item" % where)
+
+
+def main():
+    root = sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))
+    )
+    skills_dir = os.path.join(root, "skills")
+    evals_dir = os.path.join(root, "evals")
+    if not os.path.isdir(skills_dir):
+        print("validate-evals: no skills/ directory under %s" % root)
+        return 1
+
+    skills = set(
+        n for n in os.listdir(skills_dir)
+        if os.path.isfile(os.path.join(skills_dir, n, "SKILL.md"))
+    )
+    evals = set()
+    if os.path.isdir(evals_dir):
+        evals = set(
+            n for n in os.listdir(evals_dir)
+            if os.path.isdir(os.path.join(evals_dir, n)) and n != "results"
+        )
+
+    errors = []
+    for s in sorted(skills - evals):
+        errors.append("evals/%s: missing — every skill needs eval scenarios" % s)
+    for e in sorted(evals - skills):
+        errors.append("evals/%s: orphan — no matching skill" % e)
+    count = 0
+    for e in sorted(evals & skills):
+        rel = "evals/%s/scenarios.json" % e
+        path = os.path.join(evals_dir, e, "scenarios.json")
+        if not os.path.isfile(path):
+            errors.append("%s: missing" % rel)
+            continue
+        count += 1
+        check_file(path, rel, e, errors)
+
+    if errors:
+        for err in errors:
+            print("FAIL %s" % err)
+        print("validate-evals: %d error(s)" % len(errors))
+        return 1
+    print("validate-evals: %d eval file(s) OK covering %d skill(s)" % (count, len(skills)))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,43 @@
+{
+  "skill": "pr-review",
+  "scenarios": [
+    {
+      "id": "ai-generated-pr-fake-tests",
+      "task": "Review the open pull request that adds a `retry_with_backoff` utility, submitted by an AI coding agent. Read the PR description and CI status, then review the diff and tests, and decide whether to approve, request changes, or merge with fixes yourself.",
+      "fixture": "A repo with a PR branch `ai/retry-backoff` open against main. The PR description says 'Adds exponential backoff retry wrapper with full test coverage.' CI is green. The diff adds `retry_with_backoff()` in `src/net/retry.py` with an off-by-one bug (it loops `max_attempts + 1` times). The accompanying `tests/test_retry.py` mocks the wrapped function to always succeed on the first call, so the test never exercises the retry path and passes regardless of the bug. No CHANGELOG entry despite the new public function.",
+      "rubric": [
+        {"criterion": "Read the PR description and CI status before opening the diff", "grader": "judge"},
+        {"criterion": "Identified the off-by-one retry-count bug as a blocking correctness issue, not a style nit", "grader": "judge"},
+        {"criterion": "Noticed and stated that the new test would still pass even if the retry logic were broken or reverted, i.e. it doesn't actually protect the behavior it claims to cover", "grader": "judge"},
+        {"criterion": "Gave an explicit blocking/non-blocking split across the findings", "grader": "judge"},
+        {"criterion": "Delivered an explicit verdict (approve / request changes / merge-with-fix) with rationale, not just 'needs work'", "grader": "judge"},
+        {"criterion": "Did not treat the green CI run as proof the PR is correct", "grader": "judge"}
+      ]
+    },
+    {
+      "id": "huge-mixed-scope-pr",
+      "task": "Review a pull request that bundles a rewrite of the billing error-handling code, a new feature-flag module, and unrelated formatting changes across dozens of files. Decide whether to approve it and produce actionable review comments.",
+      "fixture": "A PR (branch `chore/big-batch`) touching 43 files: a rewrite of `billing/charge.py` that changes error-handling semantics, a new `feature_flags.py` module gating a checkout experiment, and whitespace/import-sorting-only diffs in 30 unrelated files. CI is green. The PR description says only 'various cleanups + new flag.' Inside the rewritten `charge.py`, one error path now silently swallows a `PaymentDeclinedError` instead of propagating it, and no test covers that path.",
+      "rubric": [
+        {"criterion": "Read the PR description and CI status before diving into the diff", "grader": "judge"},
+        {"criterion": "Flagged the swallowed PaymentDeclinedError as a blocking correctness/data-loss issue, distinct from the formatting churn", "grader": "judge"},
+        {"criterion": "Given the diff's size, either requested the PR be split or explicitly stated what was and wasn't fully reviewed, rather than silently skimming everything end to end", "grader": "judge"},
+        {"criterion": "Gave an explicit blocking/non-blocking split separating the real bug from the unrelated formatting changes", "grader": "judge"},
+        {"criterion": "Delivered an explicit verdict with rationale rather than a vague 'needs work'", "grader": "judge"},
+        {"criterion": "Did not approve on the strength of green CI alone", "grader": "judge"}
+      ]
+    },
+    {
+      "id": "small-fix-bundled-with-bug",
+      "task": "Review a small pull request that fixes a log message typo and, in the same commit, changes the page-count formula in a pagination helper. Decide how to proceed and take the PR to a resolved state.",
+      "fixture": "A PR (branch `fix/log-typo`) changes a log string typo in `app/log.py` and, in the same commit, changes `paginate()` in `app/pagination.py` from `(total + size - 1) // size` to `total // size + 1`, which over-counts pages by one whenever `total` is an exact multiple of `size`. No new tests were added. CI is green because the existing test suite has no case where `total` is an exact multiple of `size`.",
+      "rubric": [
+        {"criterion": "Read the PR description and CI status before the diff", "grader": "judge"},
+        {"criterion": "Identified the pagination formula change as a blocking correctness bug rather than treating it as equivalent to the harmless typo fix", "grader": "judge"},
+        {"criterion": "Verified the bug concretely with an example (e.g. total=10, size=5 gives an extra empty page) rather than asserting it was wrong in the abstract", "grader": "judge"},
+        {"criterion": "Given the fix is small and well understood, either corrected it directly and merged or gave an explicit blocking verdict naming the exact fix, instead of a vague request for another round of changes", "grader": "judge"},
+        {"criterion": "Did not approve on the strength of green CI alone, given CI does not cover the exact-multiple case", "grader": "judge"}
+      ]
+    }
+  ]
+}

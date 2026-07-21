@@ -1,0 +1,40 @@
+{
+  "skill": "skill-author",
+  "scenarios": [
+    {
+      "id": "scaffold-new-skill",
+      "task": "Create a new skill in this repo called 'incident-writeup' that helps write postmortems after an incident is resolved. Follow this repo's house process exactly, including scaffolding, description style, and validation.",
+      "fixture": "A checkout of this repo with skills/ containing several existing skills (e.g. debug-loop, eval-design) but no incident-writeup skill yet. scripts/new-skill is present and executable at the repo root. No incident-writeup directory exists anywhere in the repo.",
+      "rubric": [
+        {"criterion": "Ran ./scripts/new-skill to scaffold the directory instead of hand-creating skills/incident-writeup/SKILL.md and its structure manually", "grader": "judge"},
+        {"criterion": "Wrote a description that is short, generic, and front-loaded with trigger words/phrases, not a summary of the document's contents", "grader": "judge"},
+        {"criterion": "Body follows house structure: intro paragraph, '## When to use', '## Workflow' as numbered operational steps, '## Pitfalls' with earned, specific knowledge", "grader": "judge"},
+        {"criterion": "Ran ./scripts/validate-skills (and ./tests/run-tests.sh) and confirmed they passed before considering the task done", "grader": "judge"},
+        {"criterion": "The scaffolded skill directory and SKILL.md file exist on disk", "grader": "command", "command": "test -f skills/incident-writeup/SKILL.md"}
+      ]
+    },
+    {
+      "id": "fix-routing-description",
+      "task": "The 'log-analysis' skill in this repo almost never triggers when it should — teammates say Claude just doesn't reach for it. Diagnose and fix the actual problem in its SKILL.md without rewriting workflow content that already works.",
+      "fixture": "skills/log-analysis/SKILL.md exists with a working, well-structured Workflow and Pitfalls section, but its frontmatter reads: description: \"Notes on how our team approaches analyzing application logs, written up after the Q2 incident review.\" The intro paragraph and section headers otherwise match house structure.",
+      "rubric": [
+        {"criterion": "Diagnosed the problem as the description reading like a document summary rather than a routing trigger, not as a workflow-content problem", "grader": "judge"},
+        {"criterion": "Rewrote the description to be short and front-loaded with trigger phrases/when-to-use language a task prompt would actually contain", "grader": "judge"},
+        {"criterion": "Left the working Workflow and Pitfalls content intact rather than rewriting sections that weren't broken", "grader": "judge"},
+        {"criterion": "Did not introduce frontmatter beyond simple key: \"value\" lines while editing", "grader": "judge"},
+        {"criterion": "The document-summary style description no longer appears verbatim", "grader": "command", "command": "! grep -q 'Notes on how our team approaches' skills/log-analysis/SKILL.md"}
+      ]
+    },
+    {
+      "id": "duplicate-territory-check",
+      "task": "A teammate wants to add a new skill called 'test-debugging' for diagnosing failing or flaky tests. Before scaffolding anything, determine whether this repo already covers that territory, and act according to house rules.",
+      "fixture": "skills/debug-loop/SKILL.md already exists and its description and Workflow explicitly cover diagnosing failing tests and flaky/intermittent failures (reproduce, hypothesize, isolate, including a dedicated intermittent-failure path). No test-debugging skill exists yet anywhere in the repo.",
+      "rubric": [
+        {"criterion": "Checked existing skills for territory overlap before creating anything, and identified debug-loop as already covering this exact ground", "grader": "judge"},
+        {"criterion": "Did not scaffold a new duplicate skill; either extended debug-loop or explicitly declined to create test-debugging, citing the duplicate-territory rule", "grader": "judge"},
+        {"criterion": "Any change made stayed within debug-loop's existing structure rather than introducing overlapping routing phrases elsewhere in the repo", "grader": "judge"},
+        {"criterion": "No new test-debugging skill directory was created", "grader": "command", "command": "! test -d skills/test-debugging"}
+      ]
+    }
+  ]
+}

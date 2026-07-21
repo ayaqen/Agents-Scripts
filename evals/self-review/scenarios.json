@@ -1,0 +1,41 @@
+{
+  "skill": "self-review",
+  "scenarios": [
+    {
+      "id": "diff-with-debug-print-and-drive-by",
+      "task": "You just finished implementing rate limiting for the /api/upload endpoint. Before committing, self-review your diff as if a hostile reviewer were reading it, and fix what you find.",
+      "fixture": "An uncommitted diff that adds rate limiting to upload.py, but also: leaves a `print(f'DEBUG limiter state: {state}')` in the new code; contains an unrelated drive-by reformat of an unrelated function in auth.py; adds a new config option RATE_LIMIT_WINDOW without a corresponding update to docs/config.md; and has no test covering the limiter's exact-boundary case.",
+      "rubric": [
+        {"criterion": "Read the full diff via git diff before evaluating anything, rather than relying on memory of what was intended", "grader": "judge"},
+        {"criterion": "Flagged and removed the leftover debug print statement", "grader": "judge"},
+        {"criterion": "Identified the unrelated auth.py reformatting as out of scope for this change and split it out or reverted it", "grader": "judge"},
+        {"criterion": "Noticed the new config option lacked a corresponding documentation update (negative-space check)", "grader": "judge"},
+        {"criterion": "Noticed the missing boundary-case test coverage and added it or explicitly flagged it before committing", "grader": "judge"},
+        {"criterion": "No debug print statement remains in the final diff", "grader": "command", "command": "! grep -rn \"DEBUG limiter state\" . --include=*.py"}
+      ]
+    },
+    {
+      "id": "large-generated-diff-fatigue",
+      "task": "A large diff refactoring the payment-processing module across 12 files was generated in one long session. Self-review it carefully before marking the PR ready for review.",
+      "fixture": "A large uncommitted diff spanning 12 files. Most hunks are purely mechanical and correct, but one subtle correctness bug is buried in a middle hunk: a currency-rounding helper now truncates instead of rounds for amounts ending in .995.",
+      "rubric": [
+        {"criterion": "Reviewed the hunks in reverse order (or otherwise avoided a top-to-bottom skim), matching the guidance for large, fast-generated diffs", "grader": "judge"},
+        {"criterion": "Caught the currency truncation-vs-rounding boundary bug in a middle hunk rather than only checking the easy mechanical hunks at the start and end", "grader": "judge"},
+        {"criterion": "After fixing the rounding bug, re-ran the narrowest proving test command and read its actual output rather than relying on an earlier passing run", "grader": "judge"},
+        {"criterion": "Did not rubber-stamp the diff solely because it was large and machine-generated in one session", "grader": "judge"}
+      ]
+    },
+    {
+      "id": "stray-files-and-untested-branch",
+      "task": "You added an optional --dry-run flag to the CLI's export command. Self-review your change before committing, checking beyond just the tracked diff.",
+      "fixture": "Uncommitted changes add a --dry-run flag to cli/export.py. `git status` also shows an untracked scratch file notes.txt left in the repo root from earlier exploration, and export.py still contains a commented-out block of the old implementation. The new --dry-run branch has no test.",
+      "rubric": [
+        {"criterion": "Checked git status for untracked stray files, not only git diff for already-tracked changes", "grader": "judge"},
+        {"criterion": "Flagged the commented-out old implementation block in export.py as a leftover to remove", "grader": "judge"},
+        {"criterion": "Identified the missing test coverage for the new --dry-run branch as a negative-space gap", "grader": "judge"},
+        {"criterion": "No stray untracked scratch file remains in the repo root", "grader": "command", "command": "! test -f notes.txt"},
+        {"criterion": "Final commit message explains why the change was made, not just what changed", "grader": "judge"}
+      ]
+    }
+  ]
+}
