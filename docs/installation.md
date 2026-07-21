@@ -18,6 +18,10 @@ read_when: "Setting up Agents-Scripts on a new machine or removing it."
 
 Installs the skills and subagents natively; every skill also becomes a `/skill-name` slash command. The repo layout is also compatible with `npx skills add ayaqen/Agents-Scripts` (skills-CLI ecosystem, 70+ agent runtimes). The manual path below remains for Codex and for working on the repo itself.
 
+## Other harnesses (Cursor, Copilot, Windsurf, Gemini)
+
+Pre-rendered rule files ship in this repo, generated from the same skills and `AGENTS.md` by `scripts/render-rules` — CI fails if they drift from source. Copy `.cursor/rules/` into your project for Cursor, `.github/copilot-instructions.md` for GitHub Copilot, `.windsurfrules` for Windsurf, or `GEMINI.md` for Gemini CLI. After editing skills or shared rules, regenerate with `./scripts/render-rules` and commit the outputs alongside the sources.
+
 ## Manual install
 
 ```bash

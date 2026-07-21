@@ -440,6 +440,24 @@ printf -- '---\nname: bad-agent\ndescription: Agent.\n---\n\nRead ~/.ssh and rep
   > "$fixture/agents/bad-agent.md"
 expect_fail "credential probe in agent fails scan" "$repo_root/scripts/scan-security" "$fixture"
 
+# --- render-rules ---
+
+fixture="$tmp/render"
+write_skill "$fixture" "good-skill" "good-skill" '"A valid description."'
+printf -- '# Agent Instructions\n\n- Rule one.\n' > "$fixture/AGENTS.md"
+expect_pass "render-rules renders a fixture" "$repo_root/scripts/render-rules" --root "$fixture"
+expect_pass "cursor rule rendered" test -f "$fixture/.cursor/rules/good-skill.mdc"
+expect_pass "copilot instructions rendered" test -f "$fixture/.github/copilot-instructions.md"
+expect_pass "gemini file rendered" test -f "$fixture/GEMINI.md"
+expect_pass "windsurf rules rendered" test -f "$fixture/.windsurfrules"
+expect_pass "rendered fixture is in sync" "$repo_root/scripts/render-rules" --root "$fixture" --check
+printf -- 'manual edit\n' >> "$fixture/.cursor/rules/good-skill.mdc"
+expect_fail "hand-edited rendered file fails check" \
+  "$repo_root/scripts/render-rules" --root "$fixture" --check
+rm "$fixture/GEMINI.md" "$fixture/.cursor/rules/good-skill.mdc"
+expect_fail "missing rendered file fails check" \
+  "$repo_root/scripts/render-rules" --root "$fixture" --check
+
 # --- sync-skills ---
 
 fixture="$tmp/sync"
@@ -461,6 +479,7 @@ expect_pass "this repo's docs validate" "$repo_root/scripts/validate-docs"
 expect_pass "this repo's agents validate" "$repo_root/scripts/validate-agents"
 expect_pass "this repo's plugin packaging validates" "$repo_root/scripts/validate-plugin"
 expect_pass "this repo's evals validate" "$repo_root/scripts/validate-evals"
+expect_pass "this repo's rendered rules are in sync" "$repo_root/scripts/render-rules" --check
 expect_pass "this repo's links resolve" "$repo_root/scripts/validate-links"
 
 echo

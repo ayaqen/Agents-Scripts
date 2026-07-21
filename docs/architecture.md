@@ -44,5 +44,6 @@ Skills: `name` (kebab-case, must equal the directory name, unique) and `descript
 - Plugin packaging → `.claude-plugin/`; `validate-plugin` checks both manifests and their cross-consistency.
 - Skill evals → `evals/<name>/scenarios.json`; `validate-evals` enforces schema and coverage, `eval-skills` runs them on demand (docs/evals.md).
 - Security exceptions → explicit `(check, path)` entries in `scripts/scan-security`'s ALLOWLIST, landed as reviewed code changes (policy in SECURITY.md).
+- Multi-harness outputs → `scripts/render-rules` derives `.cursor/rules/`, Copilot instructions, `.windsurfrules`, and `GEMINI.md` from skills/ + AGENTS.md; rendered files are committed and `--check` blocks drift in CI.
 - Personal/machine-specific rules → untracked `AGENTS.local.md` (gitignored), never the shared files.
 - Team-private skills → a sibling overlay repo with the same layout; run its own `sync-skills` alongside this one. Managed-link semantics keep the two from stepping on each other.

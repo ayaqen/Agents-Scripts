@@ -44,6 +44,7 @@ fi
 "$script_dir/validate-plugin"
 "$script_dir/validate-evals"
 "$script_dir/validate-links"
+"$script_dir/render-rules" --check
 "$script_dir/scan-security"
 
 # Committing the tooling itself requires the tooling's tests to pass.

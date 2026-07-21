@@ -68,6 +68,9 @@ jobs:
       - name: Validate links
         run: ./scripts/validate-links
 
+      - name: Check rendered rules are in sync
+        run: ./scripts/render-rules --check
+
       - name: Tooling self-tests
         run: ./tests/run-tests.sh
 
