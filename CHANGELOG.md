@@ -4,6 +4,10 @@
 
 - Add model-tiering skill and AGENTS.md delegation rules: frontier-model orchestration with cheaper executor subagents.
 - Add pr-review, security-review, and tool-design skills.
+- Harden validate-skills: front-matter key allow-list, enforced body structure (`# <name>` heading plus When to use / Workflow / Pitfalls sections), 120-line body cap, 200-char description cap, and executable-bit + shebang checks on skill helper scripts.
+- Add validate-links dead-link checker; wired into committer, pre-commit, and CI.
+- Harden committer (72-char subject cap, tooling self-tests when tooling files are staged) and new-skill (safe substitution — descriptions with `&`, slashes, or other special characters no longer corrupt output).
+- CI: Ubuntu + macOS matrix, read-only permissions, concurrency cancellation, Dependabot for GitHub Actions, PR template, and a security policy.
 
 ## 0.1.0 - 2026-07-20
 

@@ -26,15 +26,15 @@ The same two validators run at three points, strictest-last:
 
 | Point | Trigger | Scope |
 |---|---|---|
-| `scripts/committer` | you commit through it | validators + exact staging + message format |
-| `hooks/pre-commit` | any commit, once `core.hooksPath hooks` is set | validators + `bash -n` on staged shell |
-| CI (`.github/workflows/ci.yml`) | every push / PR | validators + shellcheck + `tests/run-tests.sh` + doctor |
+| `scripts/committer` | you commit through it | validators + link check + exact staging + message format + self-tests on tooling changes |
+| `hooks/pre-commit` | any commit, once `core.hooksPath hooks` is set | validators + link check + `bash -n` on staged shell |
+| CI (`.github/workflows/ci.yml`) | every push / PR, Ubuntu and macOS | validators + link check + shellcheck + `tests/run-tests.sh` + doctor |
 
 Local checks are conveniences; CI is the guarantee. Both validators accept a repo-root argument, which is what makes the fixture-based tests in `tests/` possible.
 
 ## Front matter contract
 
-Skills: `name` (kebab-case, must equal the directory name, unique) and `description` (double-quoted). Docs: `summary` and `read_when`. Parsing is restricted to simple `key: "value"` lines — this is a *feature*: every harness and a 40-line stdlib parser agree on the semantics, and there are no YAML edge cases to disagree over.
+Skills: `name` (kebab-case, must equal the directory name, unique) and `description` (double-quoted, ≤200 chars), with front-matter keys allow-listed and the body's `# <name>` heading plus `## When to use` / `## Workflow` / `## Pitfalls` sections enforced. Docs: `summary` and `read_when`. Parsing is restricted to simple `key: "value"` lines — this is a *feature*: every harness and a 40-line stdlib parser agree on the semantics, and there are no YAML edge cases to disagree over.
 
 ## Extension points
 

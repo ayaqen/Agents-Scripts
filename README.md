@@ -45,8 +45,8 @@ Commit with validation and Conventional Commits enforced:
 AGENTS.md            Shared hard rules for every agent session
 CLAUDE.md            Pointer file for harnesses that only read CLAUDE.md
 skills/<name>/       One skill per directory: SKILL.md + optional scripts/
-scripts/             validate-skills, validate-docs, new-skill, sync-skills,
-                     committer, doctor
+scripts/             validate-skills, validate-docs, validate-links,
+                     new-skill, sync-skills, committer, doctor
 templates/skill/     Scaffold used by new-skill
 hooks/               pre-commit guardrail
 docs/                Architecture, authoring guide, install, design decisions
@@ -86,7 +86,7 @@ tests/               Self-tests for the tooling (run in CI)
 
 ## CI
 
-Every push and PR runs: `bash -n` + shellcheck on all shell scripts, `validate-skills`, `validate-docs`, and the tooling self-tests in `tests/`. See [.github/workflows/ci.yml](.github/workflows/ci.yml).
+Every push and PR runs on both Ubuntu and macOS: `bash -n` + shellcheck on all shell scripts, `validate-skills`, `validate-docs`, `validate-links`, and the tooling self-tests in `tests/`. The workflow runs with read-only permissions and its actions are Dependabot-updated. See [.github/workflows/ci.yml](.github/workflows/ci.yml).
 
 ## Contributing
 
