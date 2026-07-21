@@ -19,9 +19,14 @@ if [ -z "$msg" ] || [ $# -eq 0 ]; then
   exit 2
 fi
 
-if ! printf '%s' "$msg" | head -n 1 | grep -Eq \
+subject=$(printf '%s' "$msg" | head -n 1)
+if ! printf '%s' "$subject" | grep -Eq \
   '^(feat|fix|refactor|build|ci|chore|docs|perf|test)(\([a-z0-9./-]+\))?!?: .+'; then
   echo "committer: message must follow Conventional Commits, e.g. 'feat(skills): add debug-loop'" >&2
+  exit 1
+fi
+if [ "${#subject}" -gt 72 ]; then
+  echo "committer: subject line is ${#subject} chars (max 72) — move detail to the body" >&2
   exit 1
 fi
 
@@ -35,6 +40,17 @@ fi
 
 "$script_dir/validate-skills"
 "$script_dir/validate-docs"
+"$script_dir/validate-links"
+
+# Committing the tooling itself requires the tooling's tests to pass.
+for f in "$@"; do
+  case "$f" in
+    scripts/* | hooks/* | tests/*)
+      "$script_dir/../tests/run-tests.sh"
+      break
+      ;;
+  esac
+done
 
 git add -- "$@"
 git commit -m "$msg"

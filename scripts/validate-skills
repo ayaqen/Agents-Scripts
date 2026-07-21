@@ -15,7 +15,10 @@ import sys
 
 NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 KEY_RE = re.compile(r"^([A-Za-z0-9_-]+):\s*(.*)$")
-MAX_DESCRIPTION_LEN = 1024
+MAX_DESCRIPTION_LEN = 200
+MAX_BODY_LINES = 120
+ALLOWED_KEYS = ("name", "description", "version", "license", "allowed-tools")
+REQUIRED_SECTIONS = ("## When to use", "## Workflow", "## Pitfalls")
 
 
 def parse_front_matter(text):
@@ -87,9 +90,55 @@ def check_skill(skills_dir, name, seen_names):
             "%s: description exceeds %d chars" % (rel, MAX_DESCRIPTION_LEN)
         )
 
+    for key in data:
+        if key not in ALLOWED_KEYS:
+            errors.append(
+                "%s: unknown front matter key `%s` (allowed: %s)"
+                % (rel, key, ", ".join(ALLOWED_KEYS))
+            )
+
     if body is None or not body.strip():
         errors.append("%s: body is empty — a skill must contain a workflow" % rel)
+    else:
+        body_lines = [line.rstrip() for line in body.strip("\n").split("\n")]
+        if len(body_lines) > MAX_BODY_LINES:
+            errors.append(
+                "%s: body is %d lines (max %d) — move detail to references/ or scripts/"
+                % (rel, len(body_lines), MAX_BODY_LINES)
+            )
+        first = next((line for line in body_lines if line.strip()), "")
+        if fm_name and first != "# %s" % fm_name:
+            errors.append("%s: body must open with the heading `# %s`" % (rel, fm_name))
+        for section in REQUIRED_SECTIONS:
+            hits = body_lines.count(section)
+            if hits != 1:
+                errors.append(
+                    "%s: body must contain exactly one `%s` section (found %d)"
+                    % (rel, section, hits)
+                )
 
+    errors.extend(check_helper_scripts(path, name))
+    return errors
+
+
+def check_helper_scripts(skill_path, name):
+    """Helper scripts must be executable and carry a shebang: a fresh clone
+    preserves the mode bit, and a non-executable helper fails silently when
+    an agent tries to run it."""
+    errors = []
+    scripts_dir = os.path.join(skill_path, "scripts")
+    if not os.path.isdir(scripts_dir):
+        return errors
+    for fn in sorted(os.listdir(scripts_dir)):
+        sp = os.path.join(scripts_dir, fn)
+        if not os.path.isfile(sp):
+            continue
+        rel = os.path.join("skills", name, "scripts", fn)
+        if not os.access(sp, os.X_OK):
+            errors.append("%s: helper script is not executable (chmod +x)" % rel)
+        with open(sp, "rb") as fh:
+            if fh.read(2) != b"#!":
+                errors.append("%s: helper script missing shebang line" % rel)
     return errors
 
 
