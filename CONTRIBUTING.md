@@ -20,5 +20,6 @@ git config core.hooksPath hooks        # once
 
 - **Skills:** transferable engineering workflows. See the review checklist in [docs/skill-authoring.md](docs/skill-authoring.md). Personal tool wrappers won't be merged — broad skills route better than many narrow ones, so prefer extending an existing skill.
 - **Subagents:** `agents/*.md` definitions validated by `validate-agents` — same portability bar, plus every body must end with an `## Output contract` section.
+- **Evals:** every new or edited skill ships matching scenarios in `evals/<name>/scenarios.json` — CI enforces presence and schema; the no-regression policy is in [docs/evals.md](docs/evals.md).
 - **Tooling:** must come with tests in `tests/run-tests.sh` and pass shellcheck.
 - **Docs:** must carry `summary`/`read_when` front matter (CI enforces it).

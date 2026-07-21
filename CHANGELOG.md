@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add semantic eval harness: graded scenarios for every skill in `evals/` (50 scenarios across 17 skills), offline `validate-evals` gate wired into committer, pre-commit, and CI, and on-demand `eval-skills` runner with judge + command graders (policy in docs/evals.md).
+
 ## 0.2.0 - 2026-07-21
 
 - Add model-tiering skill and AGENTS.md delegation rules: frontier-model orchestration with cheaper executor subagents.

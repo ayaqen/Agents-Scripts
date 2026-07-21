@@ -21,6 +21,7 @@ This repo takes the opposite bet — **a small catalog where every claim is enfo
 |---|---|
 | One-line install | Claude Code plugin packaging, checked by `validate-plugin` in CI |
 | Spec-level validation | Front-matter allow-lists, enforced body structure, dead-link checks, shellcheck, 60+ self-tests — on Ubuntu **and** macOS |
+| Measured effectiveness | Every skill ships graded eval scenarios ([docs/evals.md](docs/evals.md)); results tracked in-repo as the regression baseline |
 | Static security properties | No dynamic shell preprocessing (`` !` ``) in any skill (validator-banned); front-matter keys allow-listed, so skills can't smuggle hooks or shell config; zero dependencies; helpers make no network calls |
 | Token discipline | Routing descriptions hard-capped at 200 chars, bodies at 120 lines; a deliberately small catalog instead of a firehose |
 | Portability | `AGENTS.md` + `SKILL.md` open formats; bash 3.2 + python3 stdlib only; a fresh clone passes CI anywhere |
@@ -82,6 +83,7 @@ AGENTS.md            Shared hard rules for every agent session
 CLAUDE.md            Pointer file for harnesses that only read CLAUDE.md
 skills/<name>/       One skill per directory: SKILL.md + optional scripts/
 agents/              Subagent definitions with enforced output contracts
+evals/               Per-skill semantic eval scenarios + tracked results
 .claude-plugin/      Plugin + marketplace manifests (one-line install)
 scripts/             validate-{skills,docs,agents,plugin,links},
                      new-skill, sync-skills, committer, doctor
@@ -104,6 +106,7 @@ tests/               Fixture-based self-tests for all tooling (run in CI)
 ## Docs
 
 - [Evaluation: the landscape, demand signals, and roadmap](docs/evaluation.md)
+- [Semantic evals: schema, runner, no-regression policy](docs/evals.md)
 - [Architecture and enforcement chain](docs/architecture.md)
 - [Installation (all paths)](docs/installation.md)
 - [Skill authoring contract](docs/skill-authoring.md)
