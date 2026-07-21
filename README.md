@@ -1,59 +1,33 @@
 # Agents-Scripts
 
-Portable skills, guardrails, and helper scripts for AI coding agents — Claude Code, Codex, and any harness that understands `SKILL.md` + `AGENTS.md`.
+[![CI](https://github.com/ayaqen/Agents-Scripts/actions/workflows/ci.yml/badge.svg)](https://github.com/ayaqen/Agents-Scripts/actions/workflows/ci.yml)
 
-Inspired by [steipete/agent-scripts](https://github.com/steipete/agent-scripts), rebuilt from scratch to be **portable, team-ready, and CI-enforced** instead of bound to one person's machines. See [docs/design-decisions.md](docs/design-decisions.md) for the full review of the original and what changed.
+**Curated, CI-enforced skills and subagents for AI coding agents.** One-line install. Zero dependencies. Every file validated — structure, links, security properties, and helper scripts — on every commit, on Linux and macOS.
 
-## Why this exists
-
-Agent harnesses are only as good as the instructions and workflows you feed them. This repo is the canonical home for:
-
-- **`AGENTS.md`** — shared hard rules every agent session loads (communication, git safety, verification, secrets).
-- **`skills/`** — reusable, harness-agnostic workflow skills. Each is a directory with a `SKILL.md` (validated front matter) and optional helper `scripts/`.
-- **`scripts/`** — dependency-free tooling: validate, scaffold, sync, commit, diagnose.
-- **`hooks/`** — git hooks so broken skills never land on `main`.
-
-Everything works on a fresh clone, on Linux and macOS, with nothing but `bash`, `git`, and `python3`.
-
-## Quickstart
-
-```bash
-git clone https://github.com/ayaqen/Agents-Scripts.git
-cd Agents-Scripts
-
-./scripts/doctor              # check your environment
-./scripts/validate-skills     # verify every skill parses
-./scripts/sync-skills         # link skills into ~/.claude/skills and ~/.codex/skills
-git config core.hooksPath hooks   # optional: block commits that break validation
+```text
+/plugin marketplace add ayaqen/Agents-Scripts
+/plugin install agents-scripts@agents-scripts
 ```
 
-Create a new skill:
+Works natively in Claude Code (every skill doubles as a `/slash-command`), via `npx skills add ayaqen/Agents-Scripts` for the 70+ runtimes in the skills-CLI ecosystem, and via `git clone && ./scripts/sync-skills` for Codex and manual setups.
 
-```bash
-./scripts/new-skill my-workflow "Short trigger phrase for routing."
-```
+## Why curated beats big
 
-Commit with validation and Conventional Commits enforced:
+The agent-skills ecosystem has an inversion problem: distribution scaled, quality didn't. Zero-curation registries list hundreds of thousands of skills with no vetting; a community audit found roughly three quarters of sampled community skills scoring below 60/100 — most failing *silently*; and security researchers have demonstrated real prompt-injection attacks delivered through third-party skills and hooks. Meanwhile every installed skill's metadata occupies context on every turn, so bloated catalogs literally cost tokens. (Sources and methodology: [docs/evaluation.md](docs/evaluation.md).)
 
-```bash
-./scripts/committer -m "feat(skills): add my-workflow" skills/my-workflow/SKILL.md
-```
+This repo takes the opposite bet — **a small catalog where every claim is enforced by CI, not asserted by a README**:
 
-## Repository layout
+| Guarantee | How it's enforced |
+|---|---|
+| One-line install | Claude Code plugin packaging, checked by `validate-plugin` in CI |
+| Spec-level validation | Front-matter allow-lists, enforced body structure, dead-link checks, shellcheck, 60+ self-tests — on Ubuntu **and** macOS |
+| Static security properties | No dynamic shell preprocessing (`` !` ``) in any skill (validator-banned); front-matter keys allow-listed, so skills can't smuggle hooks or shell config; zero dependencies; helpers make no network calls |
+| Token discipline | Routing descriptions hard-capped at 200 chars, bodies at 120 lines; a deliberately small catalog instead of a firehose |
+| Portability | `AGENTS.md` + `SKILL.md` open formats; bash 3.2 + python3 stdlib only; a fresh clone passes CI anywhere |
 
-```
-AGENTS.md            Shared hard rules for every agent session
-CLAUDE.md            Pointer file for harnesses that only read CLAUDE.md
-skills/<name>/       One skill per directory: SKILL.md + optional scripts/
-scripts/             validate-skills, validate-docs, validate-links,
-                     new-skill, sync-skills, committer, doctor
-templates/skill/     Scaffold used by new-skill
-hooks/               pre-commit guardrail
-docs/                Architecture, authoring guide, install, design decisions
-tests/               Self-tests for the tooling (run in CI)
-```
+## What's inside
 
-## Skill catalog
+**17 workflow skills** — transferable engineering practice, not personal tool wrappers. Each is model-invocable *and* a slash command:
 
 | Skill | Use it when |
 |---|---|
@@ -62,35 +36,82 @@ tests/               Self-tests for the tooling (run in CI)
 | [regression-fix](skills/regression-fix/SKILL.md) | Fixing a bug with a failing test written first |
 | [safe-refactor](skills/safe-refactor/SKILL.md) | Behavior-preserving refactors, verified at each step |
 | [self-review](skills/self-review/SKILL.md) | Reviewing your own diff before committing |
+| [pr-review](skills/pr-review/SKILL.md) | Reviewing someone else's pull request before merge |
+| [security-review](skills/security-review/SKILL.md) | Security pass over a diff, feature, or dependency |
 | [ci-green](skills/ci-green/SKILL.md) | Driving a failing CI pipeline back to green |
 | [release-checklist](skills/release-checklist/SKILL.md) | Cutting and *verifying* a release |
 | [dependency-vet](skills/dependency-vet/SKILL.md) | Evaluating a dependency before adding it |
 | [session-handoff](skills/session-handoff/SKILL.md) | Writing a handoff so the next session can continue |
 | [context-budget](skills/context-budget/SKILL.md) | Working in large codebases without drowning context |
+| [model-tiering](skills/model-tiering/SKILL.md) | Frontier-model orchestration with cheaper executor subagents |
 | [prompt-triage](skills/prompt-triage/SKILL.md) | Debugging LLM prompt / agent misbehavior |
 | [eval-design](skills/eval-design/SKILL.md) | Designing evals for an LLM-powered feature |
-| [model-tiering](skills/model-tiering/SKILL.md) | Splitting work between an orchestrating frontier model and cheaper executor subagents |
-| [pr-review](skills/pr-review/SKILL.md) | Reviewing someone else's pull request before merge |
-| [security-review](skills/security-review/SKILL.md) | Security pass over a diff, feature, or dependency |
 | [tool-design](skills/tool-design/SKILL.md) | Designing tools and MCP servers agents use correctly |
 | [skill-author](skills/skill-author/SKILL.md) | Creating or updating skills in this repo |
 
+**5 tiered subagents** — the model-tiering pattern, shipped as installable agents. Every agent body ends with a validator-enforced `## Output contract`, because an orchestrator only ever sees the final report:
+
+| Agent | Tier | Role |
+|---|---|---|
+| [code-reviewer](agents/code-reviewer.md) | sonnet | Read-only diff review; blocking/non-blocking findings with file:line anchors |
+| [security-auditor](agents/security-auditor.md) | inherit | Traces untrusted input to sinks; confirms exploitability before reporting |
+| [bug-hunter](agents/bug-hunter.md) | inherit | Reproduces and root-causes; returns proven cause plus dead-hypothesis list |
+| [test-writer](agents/test-writer.md) | sonnet | Failing-first regression tests matching your suite's conventions |
+| [mechanical-editor](agents/mechanical-editor.md) | haiku | Executes exact-spec edits; stops and reports on any spec mismatch |
+
+## Quickstart (manual path)
+
+```bash
+git clone https://github.com/ayaqen/Agents-Scripts.git
+cd Agents-Scripts
+./scripts/doctor                  # environment + repo health check
+./scripts/sync-skills             # link skills into ~/.claude/skills and ~/.codex/skills
+git config core.hooksPath hooks   # optional: block commits that break validation
+```
+
+Create a new skill (scaffolded, validated, safe with any description text):
+
+```bash
+./scripts/new-skill my-workflow "Short trigger phrase for routing."
+```
+
+## Repository layout
+
+```
+AGENTS.md            Shared hard rules for every agent session
+CLAUDE.md            Pointer file for harnesses that only read CLAUDE.md
+skills/<name>/       One skill per directory: SKILL.md + optional scripts/
+agents/              Subagent definitions with enforced output contracts
+.claude-plugin/      Plugin + marketplace manifests (one-line install)
+scripts/             validate-{skills,docs,agents,plugin,links},
+                     new-skill, sync-skills, committer, doctor
+templates/skill/     Scaffold used by new-skill
+hooks/               pre-commit guardrail
+docs/                Architecture, authoring guide, install, evaluation,
+                     design decisions
+tests/               Fixture-based self-tests for all tooling (run in CI)
+```
+
 ## Design principles
 
-1. **Portable or it doesn't ship.** No personal paths, no symlinks into sibling repos, no macOS-only assumptions. A fresh clone passes CI anywhere.
-2. **One toolchain.** All tooling is bash (3.2-compatible) + python3 stdlib. No Ruby, no bun, no `node_modules` to install before the repo is useful.
-3. **Validation is enforced, not suggested.** CI runs the same validators as the pre-commit hook. A skill that doesn't parse cannot merge.
-4. **Skills are workflows, not machine inventory.** Personal tool integrations belong in your own overlay repo; this one holds transferable engineering practice.
-5. **Front matter is deliberately dumb.** Simple `key: "value"` lines only — parseable by every harness and by a 40-line stdlib parser, with no YAML edge cases.
-6. **Local beats global.** Machine-specific rules go in untracked `AGENTS.local.md`, never in shared files.
+1. **Portable or it doesn't ship.** No personal paths, no symlinks into sibling repos, no macOS-only assumptions.
+2. **One toolchain.** bash (3.2-compatible) + python3 stdlib. Nothing to install before the guardrails run.
+3. **Validation is enforced, not suggested.** The same validators run in `committer`, the pre-commit hook, and CI — a file that doesn't parse cannot merge.
+4. **Curated beats big.** Fewer, broader skills route better than many narrow ones, and cost less context. Extend an existing skill before adding a neighbor.
+5. **Front matter is deliberately dumb.** Simple `key: "value"` lines, allow-listed keys. Universally parseable, and structurally incapable of smuggling hook/shell configuration.
+6. **Local beats global.** Machine-specific rules live in untracked `AGENTS.local.md`, never in shared files.
 
-## CI
+## Docs
 
-Every push and PR runs on both Ubuntu and macOS: `bash -n` + shellcheck on all shell scripts, `validate-skills`, `validate-docs`, `validate-links`, and the tooling self-tests in `tests/`. The workflow runs with read-only permissions and its actions are Dependabot-updated. See [.github/workflows/ci.yml](.github/workflows/ci.yml).
+- [Evaluation: the landscape, demand signals, and roadmap](docs/evaluation.md)
+- [Architecture and enforcement chain](docs/architecture.md)
+- [Installation (all paths)](docs/installation.md)
+- [Skill authoring contract](docs/skill-authoring.md)
+- [Design decisions vs. the original agent-scripts](docs/design-decisions.md)
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and the [skill authoring guide](docs/skill-authoring.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md). The bar: portable content, validated structure, real earned knowledge in every Pitfalls section.
 
 ## License
 

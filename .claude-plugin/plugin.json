@@ -1,0 +1,10 @@
+{
+  "name": "agents-scripts",
+  "displayName": "Agents-Scripts",
+  "version": "0.2.0",
+  "description": "Curated, CI-validated engineering workflow skills and tiered subagents for AI coding agents. Zero dependencies.",
+  "author": { "name": "Agents-Scripts contributors" },
+  "repository": "https://github.com/ayaqen/Agents-Scripts",
+  "license": "MIT",
+  "keywords": ["skills", "subagents", "workflows", "code-review", "debugging", "security-review", "model-tiering"]
+}

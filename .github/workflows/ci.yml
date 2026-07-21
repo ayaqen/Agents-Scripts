@@ -51,6 +51,12 @@ jobs:
       - name: Validate docs
         run: ./scripts/validate-docs
 
+      - name: Validate agents
+        run: ./scripts/validate-agents
+
+      - name: Validate plugin packaging
+        run: ./scripts/validate-plugin
+
       - name: Validate links
         run: ./scripts/validate-links
 

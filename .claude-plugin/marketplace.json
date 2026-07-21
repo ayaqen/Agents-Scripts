@@ -1,0 +1,15 @@
+{
+  "name": "agents-scripts",
+  "owner": { "name": "ayaqen" },
+  "description": "Marketplace for the Agents-Scripts plugin: curated, CI-validated skills and subagents.",
+  "plugins": [
+    {
+      "name": "agents-scripts",
+      "source": "./",
+      "description": "Validated engineering workflow skills plus tiered subagents (reviewer, security auditor, bug hunter, test writer, mechanical editor). Every skill doubles as a slash command; every file is CI-enforced.",
+      "category": "workflows",
+      "license": "MIT",
+      "keywords": ["skills", "subagents", "workflows", "quality"]
+    }
+  ]
+}

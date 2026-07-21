@@ -116,6 +116,14 @@ def check_skill(skills_dir, name, seen_names):
                     "%s: body must contain exactly one `%s` section (found %d)"
                     % (rel, section, hits)
                 )
+        # Dynamic shell preprocessing (!`cmd`) executes before the model sees
+        # the skill and is a documented injection channel in third-party
+        # skills. This repo bans it outright: skills here are static text.
+        if "!`" in body:
+            errors.append(
+                "%s: dynamic shell preprocessing (!`...`) is banned in this repo"
+                % rel
+            )
 
     errors.extend(check_helper_scripts(path, name))
     return errors

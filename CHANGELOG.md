@@ -8,6 +8,10 @@
 - Add validate-links dead-link checker; wired into committer, pre-commit, and CI.
 - Harden committer (72-char subject cap, tooling self-tests when tooling files are staged) and new-skill (safe substitution — descriptions with `&`, slashes, or other special characters no longer corrupt output).
 - CI: Ubuntu + macOS matrix, read-only permissions, concurrency cancellation, Dependabot for GitHub Actions, PR template, and a security policy.
+- Ship Claude Code plugin packaging (`.claude-plugin/plugin.json` + `marketplace.json`): one-line install via `/plugin marketplace add ayaqen/Agents-Scripts`.
+- Add five tiered subagents with validator-enforced output contracts: code-reviewer, security-auditor, bug-hunter, test-writer, mechanical-editor.
+- Add validate-agents and validate-plugin; ban dynamic shell preprocessing in skill bodies; wire all five validators into committer, pre-commit, and CI.
+- Reposition README around the ecosystem evaluation; add docs/evaluation.md with landscape findings, ranked demand signals, feature mapping, and roadmap.
 
 ## 0.1.0 - 2026-07-20
 

@@ -9,7 +9,16 @@ read_when: "Setting up Agents-Scripts on a new machine or removing it."
 
 `git`, `bash` (3.2+, so stock macOS works), and `python3`. Nothing else — no package installs.
 
-## Install
+## One-line install (Claude Code plugin)
+
+```text
+/plugin marketplace add ayaqen/Agents-Scripts
+/plugin install agents-scripts@agents-scripts
+```
+
+Installs the skills and subagents natively; every skill also becomes a `/skill-name` slash command. The repo layout is also compatible with `npx skills add ayaqen/Agents-Scripts` (skills-CLI ecosystem, 70+ agent runtimes). The manual path below remains for Codex and for working on the repo itself.
+
+## Manual install
 
 ```bash
 git clone https://github.com/ayaqen/Agents-Scripts.git

@@ -241,6 +241,90 @@ git -C "$gitfx" add a.txt
 expect_fail "committer refuses when unrelated files are staged" \
   run_in_dir "$gitfx" "$repo_root/scripts/committer" -m "feat: add b" b.txt
 
+# --- validate-skills: security lint ---
+
+fixture="$tmp/dynshell"
+mkdir -p "$fixture/skills/dyn-shell"
+{
+  printf -- '---\nname: dyn-shell\ndescription: "Valid."\n---\n\n'
+  skill_body dyn-shell
+  printf -- '\nInject: !%s\n' '`git diff`'
+} > "$fixture/skills/dyn-shell/SKILL.md"
+expect_fail "dynamic shell preprocessing in skill body fails" \
+  "$repo_root/scripts/validate-skills" "$fixture"
+
+# --- validate-agents ---
+
+agent_file() {
+  # agent_file <path> <name> [model]
+  cat > "$1" <<EOF
+---
+name: $2
+description: Does well-specified helper work.
+model: ${3:-haiku}
+tools: Read, Grep
+---
+
+You are a helper.
+
+## Output contract
+
+Report exactly what you did.
+EOF
+}
+
+fixture="$tmp/agents-good"
+mkdir -p "$fixture/agents"
+agent_file "$fixture/agents/helper-bot.md" helper-bot
+expect_pass "valid agent passes" "$repo_root/scripts/validate-agents" "$fixture"
+
+fixture="$tmp/agents-mismatch"
+mkdir -p "$fixture/agents"
+agent_file "$fixture/agents/wrong-file.md" helper-bot
+expect_fail "agent name/file mismatch fails" "$repo_root/scripts/validate-agents" "$fixture"
+
+fixture="$tmp/agents-badmodel"
+mkdir -p "$fixture/agents"
+agent_file "$fixture/agents/helper-bot.md" helper-bot gpt-4
+expect_fail "unknown agent model fails" "$repo_root/scripts/validate-agents" "$fixture"
+
+fixture="$tmp/agents-nocontract"
+mkdir -p "$fixture/agents"
+printf -- '---\nname: no-contract\ndescription: Valid.\n---\n\nYou are a helper.\n' \
+  > "$fixture/agents/no-contract.md"
+expect_fail "agent without output contract fails" "$repo_root/scripts/validate-agents" "$fixture"
+
+fixture="$tmp/agents-unknownkey"
+mkdir -p "$fixture/agents"
+printf -- '---\nname: extra\ndescription: Valid.\nsecret_hook: x\n---\n\nBody.\n\n## Output contract\n\nReport.\n' \
+  > "$fixture/agents/extra.md"
+expect_fail "agent with unknown front matter key fails" "$repo_root/scripts/validate-agents" "$fixture"
+
+expect_pass "missing agents dir passes" "$repo_root/scripts/validate-agents" "$tmp/good"
+
+# --- validate-plugin ---
+
+fixture="$tmp/plugin-bad"
+mkdir -p "$fixture/.claude-plugin"
+printf -- '{"name": "x-plugin", "plugins": [{"name": "x-plugin"}]}\n' \
+  > "$fixture/.claude-plugin/marketplace.json"
+expect_fail "marketplace missing owner and source fails" \
+  "$repo_root/scripts/validate-plugin" "$fixture"
+
+fixture="$tmp/plugin-badsource"
+mkdir -p "$fixture/.claude-plugin"
+printf -- '{"name": "x", "owner": {"name": "y"}, "plugins": [{"name": "x", "source": "./missing-dir"}]}\n' \
+  > "$fixture/.claude-plugin/marketplace.json"
+expect_fail "marketplace source pointing nowhere fails" \
+  "$repo_root/scripts/validate-plugin" "$fixture"
+
+fixture="$tmp/plugin-json"
+mkdir -p "$fixture/.claude-plugin"
+printf -- 'not json{\n' > "$fixture/.claude-plugin/plugin.json"
+expect_fail "malformed plugin JSON fails" "$repo_root/scripts/validate-plugin" "$fixture"
+
+expect_pass "no .claude-plugin dir passes" "$repo_root/scripts/validate-plugin" "$tmp/good"
+
 # --- sync-skills ---
 
 fixture="$tmp/sync"
@@ -259,6 +343,8 @@ unset CLAUDE_SKILLS_DIR CODEX_SKILLS_DIR
 
 expect_pass "this repo's skills validate" "$repo_root/scripts/validate-skills"
 expect_pass "this repo's docs validate" "$repo_root/scripts/validate-docs"
+expect_pass "this repo's agents validate" "$repo_root/scripts/validate-agents"
+expect_pass "this repo's plugin packaging validates" "$repo_root/scripts/validate-plugin"
 expect_pass "this repo's links resolve" "$repo_root/scripts/validate-links"
 
 echo

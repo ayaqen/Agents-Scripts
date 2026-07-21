@@ -1,0 +1,141 @@
+#!/usr/bin/env python3
+"""Validate agents/*.md subagent definitions.
+
+Same deliberately-dumb front matter contract as skills (simple `key: value`
+lines only), plus agent-specific rules: the file name is the agent name,
+the model field must be a real tier, and every body must end users with an
+explicit "## Output contract" — an orchestrator only ever sees the agent's
+final report, so an agent without an output contract is an agent whose
+results are luck.
+
+Usage: validate-agents [repo-root]
+Exit code 0 when all agents are valid, 1 otherwise. A repo without an
+agents/ directory passes with zero agents (unlike skills/, agents are
+optional).
+"""
+
+import os
+import re
+import sys
+
+NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
+KEY_RE = re.compile(r"^([A-Za-z0-9_-]+):\s*(.*)$")
+MAX_DESCRIPTION_LEN = 200
+MAX_BODY_LINES = 120
+ALLOWED_KEYS = (
+    "name", "description", "tools", "disallowedTools", "model", "maxTurns",
+    "skills", "memory", "effort", "color", "background", "isolation",
+    "initialPrompt", "permissionMode",
+)
+MODEL_TIERS = ("sonnet", "haiku", "opus", "fable", "inherit")
+REQUIRED_SECTION = "## Output contract"
+
+
+def parse_front_matter(text):
+    lines = text.split("\n")
+    if not lines or lines[0].strip() != "---":
+        return None, None, "front matter must open with --- on line 1"
+    data = {}
+    for i, line in enumerate(lines[1:], start=2):
+        if line.strip() == "---":
+            return data, "\n".join(lines[i:]), None
+        if not line.strip():
+            continue
+        m = KEY_RE.match(line)
+        if not m:
+            return None, None, "line %d: not a simple `key: value` pair" % i
+        key, value = m.group(1), m.group(2).strip()
+        if key in data:
+            return None, None, "line %d: duplicate key `%s`" % (i, key)
+        if len(value) >= 2 and value[0] == '"' and value[-1] == '"':
+            value = value[1:-1]
+        data[key] = value
+    return None, None, "front matter never closed with ---"
+
+
+def check_agent(agents_dir, fn, seen_names):
+    errors = []
+    stem = fn[:-3]
+    rel = os.path.join("agents", fn)
+    with open(os.path.join(agents_dir, fn), encoding="utf-8") as fh:
+        text = fh.read()
+
+    data, body, err = parse_front_matter(text)
+    if err:
+        return ["%s: %s" % (rel, err)]
+
+    for field in ("name", "description"):
+        if not data.get(field, "").strip():
+            errors.append("%s: missing non-empty field `%s`" % (rel, field))
+
+    fm_name = data.get("name", "").strip()
+    if fm_name:
+        if fm_name != stem:
+            errors.append(
+                "%s: front matter name `%s` does not match file name `%s`"
+                % (rel, fm_name, stem)
+            )
+        if not NAME_RE.match(fm_name):
+            errors.append("%s: name must be kebab-case ([a-z0-9-])" % rel)
+        if fm_name in seen_names:
+            errors.append("%s: duplicate agent name `%s`" % (rel, fm_name))
+        seen_names.add(fm_name)
+
+    if len(data.get("description", "")) > MAX_DESCRIPTION_LEN:
+        errors.append("%s: description exceeds %d chars" % (rel, MAX_DESCRIPTION_LEN))
+
+    for key in data:
+        if key not in ALLOWED_KEYS:
+            errors.append(
+                "%s: unknown front matter key `%s` (allowed: %s)"
+                % (rel, key, ", ".join(ALLOWED_KEYS))
+            )
+
+    model = data.get("model", "").strip()
+    if model and model not in MODEL_TIERS and not model.startswith("claude-"):
+        errors.append(
+            "%s: model `%s` is not a known tier (%s) or claude-* id"
+            % (rel, model, "/".join(MODEL_TIERS))
+        )
+
+    if body is None or not body.strip():
+        errors.append("%s: body is empty — the body is the agent's system prompt" % rel)
+    else:
+        body_lines = [line.rstrip() for line in body.strip("\n").split("\n")]
+        if len(body_lines) > MAX_BODY_LINES:
+            errors.append(
+                "%s: body is %d lines (max %d)" % (rel, len(body_lines), MAX_BODY_LINES)
+            )
+        if body_lines.count(REQUIRED_SECTION) != 1:
+            errors.append(
+                "%s: body must contain exactly one `%s` section" % (rel, REQUIRED_SECTION)
+            )
+
+    return errors
+
+
+def main():
+    root = sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))
+    )
+    agents_dir = os.path.join(root, "agents")
+    if not os.path.isdir(agents_dir):
+        print("validate-agents: 0 agent(s) OK (no agents/ directory)")
+        return 0
+
+    files = sorted(f for f in os.listdir(agents_dir) if f.endswith(".md"))
+    errors, seen = [], set()
+    for fn in files:
+        errors.extend(check_agent(agents_dir, fn, seen))
+
+    if errors:
+        for e in errors:
+            print("FAIL %s" % e)
+        print("validate-agents: %d error(s) across %d agent(s)" % (len(errors), len(files)))
+        return 1
+    print("validate-agents: %d agent(s) OK" % len(files))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

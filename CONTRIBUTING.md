@@ -19,5 +19,6 @@ git config core.hooksPath hooks        # once
 ## What gets accepted
 
 - **Skills:** transferable engineering workflows. See the review checklist in [docs/skill-authoring.md](docs/skill-authoring.md). Personal tool wrappers won't be merged — broad skills route better than many narrow ones, so prefer extending an existing skill.
+- **Subagents:** `agents/*.md` definitions validated by `validate-agents` — same portability bar, plus every body must end with an `## Output contract` section.
 - **Tooling:** must come with tests in `tests/run-tests.sh` and pass shellcheck.
 - **Docs:** must carry `summary`/`read_when` front matter (CI enforces it).
