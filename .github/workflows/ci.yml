@@ -21,7 +21,7 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Syntax-check all shell scripts
         run: |
@@ -34,8 +34,13 @@ jobs:
 
       - name: Shellcheck
         run: |
+          # macOS runner images stopped bundling shellcheck; install rather
+          # than silently skipping — a skipped check is a false guarantee.
+          if ! command -v shellcheck >/dev/null 2>&1 && command -v brew >/dev/null 2>&1; then
+            brew install shellcheck
+          fi
           if ! command -v shellcheck >/dev/null 2>&1; then
-            echo "shellcheck unavailable on this runner" >&2
+            echo "shellcheck unavailable and could not be installed" >&2
             exit 1
           fi
           find scripts hooks tests skills -type f -print0 |
