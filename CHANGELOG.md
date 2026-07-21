@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Add semantic eval harness: graded scenarios for every skill in `evals/` (50 scenarios across 17 skills), offline `validate-evals` gate wired into committer, pre-commit, and CI, and on-demand `eval-skills` runner with judge + command graders (policy in docs/evals.md).
+- Add scan-security static threat scanner (unicode smuggling, curl-pipe-shell, base64-exec, opaque blobs, agent-steering phrases, credential probes, network-in-helpers) as a dedicated CI job, wired into committer and pre-commit; disclosed scanning policy and manual security-auditor deep-review layer documented in SECURITY.md.
 
 ## 0.2.0 - 2026-07-21
 

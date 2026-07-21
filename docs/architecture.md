@@ -22,7 +22,7 @@ A link is *managed* iff its target resolves inside this repo; sync only creates,
 
 ## Enforcement chain
 
-The same validators (skills, docs, agents, plugin packaging, evals, links) run at three points, strictest-last:
+The same validators (skills, docs, agents, plugin packaging, evals, links) plus the static threat scanner run at three points, strictest-last:
 
 | Point | Trigger | Scope |
 |---|---|---|
@@ -43,5 +43,6 @@ Skills: `name` (kebab-case, must equal the directory name, unique) and `descript
 - New subagent → `agents/<name>.md`; `validate-agents` enforces the format, a real model tier, and an explicit `## Output contract` section.
 - Plugin packaging → `.claude-plugin/`; `validate-plugin` checks both manifests and their cross-consistency.
 - Skill evals → `evals/<name>/scenarios.json`; `validate-evals` enforces schema and coverage, `eval-skills` runs them on demand (docs/evals.md).
+- Security exceptions → explicit `(check, path)` entries in `scripts/scan-security`'s ALLOWLIST, landed as reviewed code changes (policy in SECURITY.md).
 - Personal/machine-specific rules → untracked `AGENTS.local.md` (gitignored), never the shared files.
 - Team-private skills → a sibling overlay repo with the same layout; run its own `sync-skills` alongside this one. Managed-link semantics keep the two from stepping on each other.

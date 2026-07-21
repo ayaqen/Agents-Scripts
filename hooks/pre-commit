@@ -11,6 +11,7 @@ repo_root=$(git rev-parse --show-toplevel)
 "$repo_root/scripts/validate-plugin"
 "$repo_root/scripts/validate-evals"
 "$repo_root/scripts/validate-links"
+"$repo_root/scripts/scan-security"
 
 # Syntax-check any staged shell scripts.
 git diff --cached --name-only --diff-filter=ACM | while IFS= read -r file; do

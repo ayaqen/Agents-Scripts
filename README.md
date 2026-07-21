@@ -22,7 +22,7 @@ This repo takes the opposite bet — **a small catalog where every claim is enfo
 | One-line install | Claude Code plugin packaging, checked by `validate-plugin` in CI |
 | Spec-level validation | Front-matter allow-lists, enforced body structure, dead-link checks, shellcheck, 60+ self-tests — on Ubuntu **and** macOS |
 | Measured effectiveness | Every skill ships graded eval scenarios ([docs/evals.md](docs/evals.md)); results tracked in-repo as the regression baseline |
-| Static security properties | No dynamic shell preprocessing (`` !` ``) in any skill (validator-banned); front-matter keys allow-listed, so skills can't smuggle hooks or shell config; zero dependencies; helpers make no network calls |
+| Static security properties | Every PR runs a static threat scanner ([SECURITY.md](SECURITY.md)): unicode smuggling, exec-pipe and obfuscation patterns, agent-steering phrases, credential probes; dynamic shell preprocessing validator-banned; front-matter keys allow-listed; "helpers make no network calls" is scanner-enforced; zero dependencies |
 | Token discipline | Routing descriptions hard-capped at 200 chars, bodies at 120 lines; a deliberately small catalog instead of a firehose |
 | Portability | `AGENTS.md` + `SKILL.md` open formats; bash 3.2 + python3 stdlib only; a fresh clone passes CI anywhere |
 

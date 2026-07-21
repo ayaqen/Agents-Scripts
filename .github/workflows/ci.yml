@@ -73,3 +73,11 @@ jobs:
 
       - name: Doctor smoke
         run: ./scripts/doctor
+
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Static threat scan
+        run: ./scripts/scan-security

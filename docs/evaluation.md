@@ -48,6 +48,6 @@ Research conducted July 2026 via web survey of the major agent-skills repos and 
 ## Roadmap (evidence-backed, in priority order)
 
 1. **Semantic eval harness** — SHIPPED: graded scenarios for every skill in `evals/`, structural coverage gate in CI, on-demand LLM-judge runner (`scripts/eval-skills`), results tracked in-repo (docs/evals.md). Next iterations: materialized fixture workspaces and automated with/without-skill comparison.
-2. **Contribution security scan** — cursor.directory-style agent review of PR diffs against a threat rubric, as a CI job with disclosed policy. Combining spec CI + security vetting would be unique in the ecosystem.
+2. **Contribution security scan** — SHIPPED (static layer): deterministic threat scanner (`scripts/scan-security`) runs on every PR with a disclosed policy in SECURITY.md, plus maintainer deep-review of contribution diffs using the in-repo security-auditor agent. The repo now combines spec CI + security scanning — the pairing the landscape survey found nowhere else. Next iteration: LLM-graded diff review as an optional CI job.
 3. **Multi-harness rendering** — generate `.cursor/rules/*.mdc` and Copilot instructions from `skills/` sources, following wshobson's one-source-of-truth model. Do this only when demand shows up in issues; premature generators rot.
 4. **Trigger observability** — a doctor subcommand that diffs installed skill descriptions against a task phrase to explain routing, addressing signal 8.

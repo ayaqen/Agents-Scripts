@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+"""Static threat scanner for agent-instruction repos.
+
+Skills and agent definitions are followed by AI agents with real tool
+access, which makes this repo's content an attack surface: a malicious
+contribution doesn't need to execute at merge time — it executes later,
+on every user's machine, with the user's credentials. This scanner runs
+the deterministic layer of the security policy (see SECURITY.md) on
+every PR; the manual layer is a maintainer review of the diff with
+agents/security-auditor.md.
+
+Checks (scoped to where each threat is meaningful):
+  unicode-smuggling     BIDI overrides / zero-width chars (invisible
+                        instruction smuggling)              [all files]
+  curl-pipe-shell       piping a download into a shell      [all files]
+  base64-exec           decode-and-execute one-liners       [all files]
+  opaque-blob           long base64/hex blobs (obfuscation) [all files]
+  dynamic-preprocessing !`...` context injection            [instruction files]
+  steering-phrase       agent-override / concealment phrases[instruction files]
+  credential-probe      key-material paths and env dumps    [instruction + helper files]
+  network-in-helper     network tools in helper scripts     [helper scripts]
+
+Exit 0 = clean, 1 = findings, printed FAIL-style with file:line.
+Exceptions require an explicit (check-id, path) entry in ALLOWLIST —
+a reviewed code change, never a runtime flag.
+
+Usage: scan-security [repo-root]
+"""
+
+import os
+import re
+import sys
+
+SKIP_DIRS = {".git", "node_modules", "tmp", ".venv"}
+# Excluded by design, documented in SECURITY.md:
+#  - this file (contains the patterns it hunts)
+#  - tests/ (contains malicious fixtures on purpose)
+#  - evals/results/ (transcript data, not instructions)
+SKIP_PATHS = ("scripts/scan-security", "tests/", "evals/results/")
+
+ALLOWLIST = set()  # e.g. {("steering-phrase", "docs/some-doc.md")}
+
+INSTRUCTION_PREFIXES = ("skills/", "agents/", "templates/", "AGENTS.md", "CLAUDE.md")
+HELPER_PREFIXES = ("scripts/", "hooks/")
+
+BIDI_ZW = re.compile("[‪-‮⁦-⁩​-‍﻿]")
+CURL_PIPE = re.compile(r"\b(curl|wget)\b[^|\n]*\|\s*(ba|z|da)?sh\b")
+B64_EXEC = re.compile(r"\bbase64\b.*\|\s*(sh|bash|eval|python3?|perl)\b")
+OPAQUE_BLOB = re.compile(r"[A-Za-z0-9+/=]{300,}")
+DYN_PREPROC = re.compile(r"!`")
+STEERING = re.compile(
+    r"ignore\s+(all\s+)?(previous|prior|above)\s+instructions"
+    r"|do\s+not\s+(tell|inform|show|mention\s+this\s+to)\s+the\s+user"
+    r"|without\s+(telling|informing|asking)\s+the\s+user"
+    r"|hide\s+this\s+from"
+    r"|disable\s+(the\s+)?(safety|validation|permission|sandbox)",
+    re.IGNORECASE,
+)
+CRED_PROBE = re.compile(
+    r"~/\.ssh\b|id_rsa\b|\.aws/credentials|~/\.netrc\b"
+    r"|\bprintenv\b|\benv\s*>\s|\bset\s*\|\s*(curl|wget|nc)\b"
+    r"|GITHUB_TOKEN|ANTHROPIC_API_KEY|AWS_SECRET",
+)
+NETWORK_TOOL = re.compile(r"(^|[|;&\s(])(curl|wget|nc|netcat|telnet)\s")
+
+
+def is_helper(rel):
+    if rel.startswith("hooks/"):
+        return True
+    if rel.startswith("scripts/"):
+        return True
+    parts = rel.split("/")
+    return len(parts) >= 3 and parts[0] == "skills" and parts[2] == "scripts"
+
+
+def is_instruction(rel):
+    return rel.startswith(INSTRUCTION_PREFIXES)
+
+
+def scan_file(rel, text, findings):
+    def hit(check, lineno, snippet):
+        if (check, rel) in ALLOWLIST:
+            return
+        findings.append("%s:%d: %s — %s" % (rel, lineno, check, snippet.strip()[:120]))
+
+    for m in BIDI_ZW.finditer(text):
+        lineno = text.count("\n", 0, m.start()) + 1
+        hit("unicode-smuggling", lineno, "invisible/BIDI character U+%04X" % ord(m.group()))
+        break  # one report per file is enough to block
+
+    for i, line in enumerate(text.split("\n"), start=1):
+        if CURL_PIPE.search(line):
+            hit("curl-pipe-shell", i, line)
+        if B64_EXEC.search(line):
+            hit("base64-exec", i, line)
+        if OPAQUE_BLOB.search(line):
+            hit("opaque-blob", i, "opaque blob of %d+ chars" % 300)
+        if is_instruction(rel):
+            if DYN_PREPROC.search(line):
+                hit("dynamic-preprocessing", i, line)
+            if STEERING.search(line):
+                hit("steering-phrase", i, line)
+        if (is_instruction(rel) or is_helper(rel)) and CRED_PROBE.search(line):
+            hit("credential-probe", i, line)
+        if is_helper(rel) and NETWORK_TOOL.search(line):
+            hit("network-in-helper", i, line)
+
+
+def main():
+    root = sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(
+        os.path.dirname(os.path.abspath(__file__))
+    )
+    findings, scanned = [], 0
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = sorted(d for d in dirnames if d not in SKIP_DIRS)
+        for fn in sorted(filenames):
+            path = os.path.join(dirpath, fn)
+            rel = os.path.relpath(path, root).replace(os.sep, "/")
+            if rel.startswith(SKIP_PATHS):
+                continue
+            try:
+                with open(path, encoding="utf-8") as fh:
+                    text = fh.read()
+            except (UnicodeDecodeError, OSError):
+                continue  # binary or unreadable: nothing instruction-shaped
+            scanned += 1
+            scan_file(rel, text, findings)
+
+    if findings:
+        for f in findings:
+            print("FAIL %s" % f)
+        print("scan-security: %d finding(s) across %d file(s) — see SECURITY.md"
+              % (len(findings), scanned))
+        return 1
+    print("scan-security: %d file(s) clean" % scanned)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
