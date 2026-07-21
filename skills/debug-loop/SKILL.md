@@ -1,6 +1,6 @@
 ---
 name: debug-loop
-description: "Hypothesis-driven debugging: reproduce, isolate, prove the cause before writing the fix."
+description: "Hypothesis-driven debugging of failing tests and bugs: reproduce, isolate, prove the cause before writing the fix."
 ---
 
 # debug-loop

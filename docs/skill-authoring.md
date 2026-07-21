@@ -51,6 +51,6 @@ Style rules:
 
 1. `./scripts/validate-skills && ./scripts/validate-links && ./tests/run-tests.sh` pass.
 2. Description reads as a trigger, not a summary.
-3. No overlap with an existing skill's routing territory — extend instead.
+3. No overlap with an existing skill's routing territory — check with `./scripts/explain-routing --overlap` and extend instead of duplicating.
 4. Pitfalls section contains real earned knowledge, not padding.
 5. Any referenced commands actually exist on a fresh clone.

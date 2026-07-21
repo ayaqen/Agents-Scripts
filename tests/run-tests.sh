@@ -458,6 +458,21 @@ rm "$fixture/GEMINI.md" "$fixture/.cursor/rules/good-skill.mdc"
 expect_fail "missing rendered file fails check" \
   "$repo_root/scripts/render-rules" --root "$fixture" --check
 
+# --- explain-routing ---
+
+fixture="$tmp/routing"
+write_skill "$fixture" "debug-skill" "debug-skill" '"Debugging failing tests and mysterious bugs."'
+write_skill "$fixture" "review-skill" "review-skill" '"Reviewing pull requests before merge."'
+expect_pass "explain-routing ranks the right skill first" bash -c \
+  "'$repo_root/scripts/explain-routing' --root '$fixture' 'debug the failing test' | sed -n 3p | grep -q debug-skill"
+expect_pass "explain-routing reports zero-signal phrases" bash -c \
+  "'$repo_root/scripts/explain-routing' --root '$fixture' 'bake sourdough bread' | grep -q 'No skill shows routing signal'"
+expect_fail "explain-routing without a phrase is a usage error" \
+  "$repo_root/scripts/explain-routing" --root "$fixture"
+write_skill "$fixture" "debug-twin" "debug-twin" '"Debugging failing tests and mysterious bugs."'
+expect_pass "overlap audit flags competing descriptions" bash -c \
+  "'$repo_root/scripts/explain-routing' --root '$fixture' --overlap | grep -q 'Competing routing territories'"
+
 # --- sync-skills ---
 
 fixture="$tmp/sync"

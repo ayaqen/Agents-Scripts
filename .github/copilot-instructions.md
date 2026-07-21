@@ -61,7 +61,7 @@ Workflow skills available in this repo's skills/ directory; open skills/<name>/S
 
 - **ci-green** — Drive a failing CI pipeline back to green: diagnose, fix, re-kick, repeat until merged.
 - **context-budget** — Work in large codebases without drowning context: targeted reads, delegated searches, externalized state.
-- **debug-loop** — Hypothesis-driven debugging: reproduce, isolate, prove the cause before writing the fix.
+- **debug-loop** — Hypothesis-driven debugging of failing tests and bugs: reproduce, isolate, prove the cause before writing the fix.
 - **dependency-vet** — Evaluate a new dependency before adding it: health, security, cost, and the no-dependency alternative.
 - **eval-design** — Design evals for an LLM feature: graded cases, honest metrics, and a regression set that gates changes.
 - **model-tiering** — Split work across model tiers: a frontier model orchestrates and reviews, cheaper subagent models execute well-specified tasks.

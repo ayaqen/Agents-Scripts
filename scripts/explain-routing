@@ -1,0 +1,183 @@
+#!/usr/bin/env python3
+"""Explain which skill a task phrase would route to, and why.
+
+Addresses trigger opacity (users can't tell which skill fired or why one
+didn't): rank skills by lexical routing signal against a task phrase,
+with matched-term evidence and an ambiguity warning when two skills
+compete for the same phrase.
+
+HONESTY CAVEAT: real harnesses route with a language model reading the
+descriptions, not lexical overlap. This tool approximates and *explains*
+routing — strong signal here predicts reliable routing; zero or ambiguous
+signal predicts trouble — but it does not replicate the model's judgment.
+
+Usage:
+  explain-routing [--root DIR] "<task phrase>"   rank skills for a phrase
+  explain-routing [--root DIR] --overlap         audit catalog for skills
+                                                 competing on description
+Exit code is always 0 unless usage is wrong (2): this is a lens, not a gate.
+"""
+
+import os
+import re
+import sys
+
+try:
+    # Output will routinely be piped into head/grep; die quietly on SIGPIPE
+    # instead of tracebacking.
+    from signal import SIG_DFL, SIGPIPE, signal
+    signal(SIGPIPE, SIG_DFL)
+except ImportError:
+    pass
+
+KEY_RE = re.compile(r"^([A-Za-z0-9_-]+):\s*(.*)$")
+WORD_RE = re.compile(r"[a-z0-9]+")
+STOPWORDS = {
+    "a", "an", "and", "are", "be", "before", "for", "i", "in", "into", "is",
+    "it", "its", "my", "of", "on", "or", "over", "that", "the", "this", "to",
+    "when", "with", "without", "you", "your", "how", "do", "does", "can",
+    "need", "want", "some", "any", "one",
+}
+AMBIGUITY_MARGIN = 0.8
+OVERLAP_THRESHOLD = 0.3
+
+
+def tokens(text):
+    return [t for t in WORD_RE.findall(text.lower())
+            if len(t) >= 2 and t not in STOPWORDS]
+
+
+def match(a, b):
+    if a == b:
+        return True
+    return len(a) >= 4 and len(b) >= 4 and (a.startswith(b) or b.startswith(a))
+
+
+def load_skills(root):
+    out = []
+    skills_dir = os.path.join(root, "skills")
+    for name in sorted(os.listdir(skills_dir)):
+        path = os.path.join(skills_dir, name, "SKILL.md")
+        if not os.path.isfile(path):
+            continue
+        with open(path, encoding="utf-8") as fh:
+            lines = fh.read().split("\n")
+        description, body_lines, in_when = "", [], False
+        for line in lines:
+            m = KEY_RE.match(line)
+            if m and m.group(1) == "description":
+                description = m.group(2).strip().strip('"')
+            if line.strip() == "## When to use":
+                in_when = True
+                continue
+            if in_when and line.startswith("## "):
+                in_when = False
+            if in_when:
+                body_lines.append(line)
+        out.append({
+            "name": name,
+            "description": description,
+            "name_tokens": set(tokens(name.replace("-", " "))),
+            "desc_tokens": set(tokens(description)),
+            "when_tokens": set(tokens(" ".join(body_lines))),
+        })
+    return out
+
+
+def score(skill, task_tokens):
+    total, evidence = 0, []
+    for t in set(task_tokens):
+        if any(match(t, s) for s in skill["name_tokens"]):
+            total += 4
+            evidence.append(t + "(name)")
+        elif any(match(t, s) for s in skill["desc_tokens"]):
+            total += 3
+            evidence.append(t + "(desc)")
+        elif any(match(t, s) for s in skill["when_tokens"]):
+            total += 1
+            evidence.append(t + "(when)")
+    return total, evidence
+
+
+def explain(root, phrase):
+    skills = load_skills(root)
+    task_tokens = tokens(phrase)
+    ranked = []
+    for sk in skills:
+        s, ev = score(sk, task_tokens)
+        ranked.append((s, sk["name"], ev))
+    ranked.sort(key=lambda r: (-r[0], r[1]))
+
+    print("task: %s\n" % phrase)
+    shown = [r for r in ranked if r[0] > 0][:5]
+    if not shown:
+        print("No skill shows routing signal for this phrase.")
+        print("Either invoke a skill explicitly (/skill-name) or, if one")
+        print("SHOULD cover this, sharpen its description with the words a")
+        print("task like this would contain (docs/skill-authoring.md).")
+        return
+    for s, name, ev in shown:
+        print("%-22s score %-3d matched: %s" % (name, s, ", ".join(sorted(ev))))
+    top, runner = ranked[0], ranked[1] if len(ranked) > 1 else (0, "", [])
+    print()
+    if runner[0] > 0 and runner[0] >= AMBIGUITY_MARGIN * top[0]:
+        print("AMBIGUOUS: %s and %s compete for this phrase — model routing"
+              % (top[1], runner[1]))
+        print("will be unstable. Sharpen one description or invoke explicitly.")
+    else:
+        print("Likely route: %s — description terms carry the signal;"
+              % top[1])
+        print("weak or zero scores above mean the description, not the body,")
+        print("needs the missing words.")
+
+
+def overlap(root):
+    skills = load_skills(root)
+    pairs = []
+    for i, a in enumerate(skills):
+        for b in skills[i + 1:]:
+            union = a["desc_tokens"] | b["desc_tokens"]
+            if not union:
+                continue
+            j = len(a["desc_tokens"] & b["desc_tokens"]) / len(union)
+            if j >= OVERLAP_THRESHOLD:
+                pairs.append((j, a["name"], b["name"]))
+    pairs.sort(reverse=True)
+    if not pairs:
+        print("explain-routing: no competing routing territories"
+              " (description overlap all < %.0f%%)" % (OVERLAP_THRESHOLD * 100))
+        return
+    print("Competing routing territories (description token overlap):")
+    for j, a, b in pairs:
+        print("  %.0f%%  %s <-> %s" % (j * 100, a, b))
+    print("Overlapping descriptions make the harness's choice a coin flip —")
+    print("merge, sharpen, or re-scope (docs/skill-authoring.md).")
+
+
+def main():
+    args = sys.argv[1:]
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    mode_overlap, phrase = False, None
+    i = 0
+    while i < len(args):
+        if args[i] == "--root":
+            i += 1
+            root = os.path.abspath(args[i])
+        elif args[i] == "--overlap":
+            mode_overlap = True
+        else:
+            phrase = args[i]
+        i += 1
+    if mode_overlap:
+        overlap(root)
+        return 0
+    if not phrase:
+        print('usage: explain-routing [--root DIR] "<task phrase>" | --overlap',
+              file=sys.stderr)
+        return 2
+    explain(root, phrase)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

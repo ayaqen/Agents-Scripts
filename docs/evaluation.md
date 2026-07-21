@@ -43,11 +43,11 @@ Research conducted July 2026 via web survey of the major agent-skills repos and 
 | 4 Install | `.claude-plugin/` marketplace + plugin manifests (checked by `validate-plugin`); skills-CLI-compatible layout; `sync-skills` for manual/Codex |
 | 5 Portability | AGENTS.md + SKILL.md open formats; CLAUDE.md pointer pattern; bash 3.2 + python3 stdlib |
 | 6 Backlash | Skills are opt-in workflows, not an enforced pipeline — no mandatory wrapper around simple tasks |
-| 8 Triggering | Descriptions written as routing triggers (house rule + review checklist); every skill invocable explicitly as `/skill-name` |
+| 8 Triggering | `scripts/explain-routing` ranks which skill a task phrase routes to with matched-term evidence and flags competing territories (`--overlap`); descriptions written as routing triggers; every skill invocable explicitly as `/skill-name` |
 
 ## Roadmap (evidence-backed, in priority order)
 
 1. **Semantic eval harness** — SHIPPED: graded scenarios for every skill in `evals/`, structural coverage gate in CI, on-demand LLM-judge runner (`scripts/eval-skills`), results tracked in-repo (docs/evals.md). Next iterations: materialized fixture workspaces and automated with/without-skill comparison.
 2. **Contribution security scan** — SHIPPED (static layer): deterministic threat scanner (`scripts/scan-security`) runs on every PR with a disclosed policy in SECURITY.md, plus maintainer deep-review of contribution diffs using the in-repo security-auditor agent. The repo now combines spec CI + security scanning — the pairing the landscape survey found nowhere else. Next iteration: LLM-graded diff review as an optional CI job.
 3. **Multi-harness rendering** — SHIPPED: `scripts/render-rules` generates committed Cursor rules, Copilot instructions, Windsurf rules, and GEMINI.md from skills/ + AGENTS.md, with drift blocked in CI via `--check` — the anti-rot mechanism that makes committed generated output safe. Catalog-style targets (Copilot/Windsurf/Gemini) index skills rather than inlining bodies, preserving token discipline.
-4. **Trigger observability** — a doctor subcommand that diffs installed skill descriptions against a task phrase to explain routing, addressing signal 8.
+4. **Trigger observability** — SHIPPED: `scripts/explain-routing "<task phrase>"` ranks skills by lexical routing signal with matched-term evidence and an ambiguity warning; `--overlap` audits the catalog for competing routing territories. Deliberately deterministic and offline — it approximates and explains LLM routing rather than replicating it (caveat documented in the tool). Its first run against the live catalog found and fixed a real routing gap in debug-loop's description.

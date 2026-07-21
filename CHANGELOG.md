@@ -5,6 +5,7 @@
 - Add semantic eval harness: graded scenarios for every skill in `evals/` (50 scenarios across 17 skills), offline `validate-evals` gate wired into committer, pre-commit, and CI, and on-demand `eval-skills` runner with judge + command graders (policy in docs/evals.md).
 - Add scan-security static threat scanner (unicode smuggling, curl-pipe-shell, base64-exec, opaque blobs, agent-steering phrases, credential probes, network-in-helpers) as a dedicated CI job, wired into committer and pre-commit; disclosed scanning policy and manual security-auditor deep-review layer documented in SECURITY.md.
 - Add render-rules multi-harness renderer: skills/ + AGENTS.md generate committed Cursor rules (.cursor/rules/*.mdc), GitHub Copilot instructions, .windsurfrules, and GEMINI.md, with `render-rules --check` blocking source/output drift in committer, pre-commit, and CI.
+- Add explain-routing trigger-observability tool: ranks which skill a task phrase routes to with matched-term evidence and ambiguity warnings; `--overlap` audits the catalog for competing routing descriptions. Sharpened debug-loop's description based on its first finding.
 
 ## 0.2.0 - 2026-07-21
 

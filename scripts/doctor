@@ -46,6 +46,7 @@ if [ "$hooks_path" = "hooks" ]; then
 else
   echo "info hooks not wired; enable with: git config core.hooksPath hooks"
 fi
+echo "info skill not triggering? explain routing: scripts/explain-routing '<task phrase>'"
 
 # Installed skill links health
 for dir in "${CLAUDE_SKILLS_DIR:-$HOME/.claude/skills}" "${CODEX_SKILLS_DIR:-$HOME/.codex/skills}"; do
