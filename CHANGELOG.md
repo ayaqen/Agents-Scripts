@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- README visual overhaul: centered hero with harness/tech/stat badge rows, dynamic release/license/stars badges, quick-nav, mermaid enforcement-pipeline diagram, harness support matrix, collapsible layout section, and star CTA footer.
+
 ## 0.3.0 - 2026-07-21
 
 - Add semantic eval harness: graded scenarios for every skill in `evals/` (50 scenarios across 17 skills), offline `validate-evals` gate wired into committer, pre-commit, and CI, and on-demand `eval-skills` runner with judge + command graders (policy in docs/evals.md).
